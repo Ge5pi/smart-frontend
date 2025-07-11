@@ -7,6 +7,7 @@ import api from '../api';
 
 type ImputationResult = {
   preview: any[];
+  columns: any[];
   missing_before: { [key: string]: number };
   missing_after: { [key: string]: number };
   processing_results: { [key: string]: string };
@@ -24,8 +25,8 @@ const DataCleanerPage = () => {
     // Локальные состояния, которые используются только на этой странице
     const [selectedOutlierCols, setSelectedOutlierCols] = useState<string[]>([]);
     const [selectedMissingCols, setSelectedMissingCols] = useState<string[]>([]);
-    const [isAnalyzing, setIsAnalyzing] = useState(false); // для поиска выбросов
-    const [isImputing, setIsImputing] = useState(false);   // для заполнения пропусков
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isImputing, setIsImputing] = useState(false);
     const [imputationResult, setImputationResult] = useState<ImputationResult | null>(null);
     const [outliers, setOutliers] = useState<any[]>([]);
     const [outlierCount, setOutlierCount] = useState<number | null>(null);
@@ -37,9 +38,8 @@ const DataCleanerPage = () => {
 
 
     useEffect(() => {
-        if (fileId) { // Токен уже проверяется в api.ts, можно убрать
+        if (fileId) {
             setIsLoading(true);
-            // Убираем лишний headers, interceptor в api.ts сделает всё сам
             api.get(`/preview/${fileId}`, {
                 params: { page: currentPage, page_size: rowsPerPage }
             })
@@ -52,14 +52,13 @@ const DataCleanerPage = () => {
             })
             .finally(() => setIsLoading(false));
         }
-    }, [fileId, currentPage]);
+    }, [fileId, currentPage, setPreview, setError, setIsLoading, setTotalRows]);
 
 
     useEffect(() => {
         const fetchUserFiles = async () => {
             if (token) {
                 try {
-                    // Убираем headers
                     const res = await api.get('/files/me');
                     setUserFiles(res.data);
                 } catch (err) {
@@ -70,13 +69,12 @@ const DataCleanerPage = () => {
         fetchUserFiles();
     }, [token, setUserFiles]);
 
-    // --- 2. ФУНКЦИЯ ВЫБОРА И АНАЛИЗА СУЩЕСТВУЮЩЕГО ФАЙЛА ---
+
     const handleSelectFile = async (selectedFileId: string, selectedFileName: string) => {
-        resetState(); // Сбрасываем все предыдущие состояния
+        resetState();
         setIsLoading(true);
         setError(null);
 
-        // Создаем настоящий, но пустой объект File для консистентности типа в состоянии
         const placeholderFile = new File([""], selectedFileName, { type: "text/csv"});
         setFile(placeholderFile);
 
@@ -84,25 +82,22 @@ const DataCleanerPage = () => {
         formData.append("file_id", selectedFileId);
 
         try {
-            // Убираем headers
             const res = await api.post('/analyze-existing/', formData);
             setFileId(selectedFileId);
             setColumns(res.data.columns);
             setPreview(res.data.preview);
-            setTotalRows(res.data.total_rows || res.data.preview.length);
+            setTotalRows(res.data.preview.length); // На бэке стоит поправить, чтобы analyze-existing тоже отдавал total_rows
             setCurrentPage(1);
         } catch (err: any) {
-            // --- ИЗМЕНЕНИЕ ---
             const message = err.response?.data?.detail || "Не удалось проанализировать выбранный файл.";
             setError(message);
-            console.error(err);
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleEncode = async () => {
-        if (!fileId || selectedEncodingCols.length === 0 || !token) return;
+        if (!fileId || selectedEncodingCols.length === 0) return;
 
         setIsEncoding(true);
         setError(null);
@@ -113,15 +108,17 @@ const DataCleanerPage = () => {
         try {
             const res = await api.post(`/encode-categorical/`, formData);
 
-            // Обновляем состояние страницы новыми данными с сервера
+            // --- ИЗМЕНЕНИЕ: Добавил сброс пагинации и обновление total_rows ---
             setColumns(res.data.columns);
             setPreview(res.data.preview);
+            setTotalRows(res.data.preview.length); // Аналогично, бэк должен возвращать total_rows
+            setCurrentPage(1);
 
-            // Сбрасываем выбор и результаты других операций
             setSelectedEncodingCols([]);
             setImputationResult(null);
             setOutlierCount(null);
 
+            // Вместо alert лучше использовать toast-уведомления
             alert(res.data.message);
         } catch (err: any) {
             setError(err.response?.data?.detail || "Ошибка при кодировании столбцов.");
@@ -130,12 +127,11 @@ const DataCleanerPage = () => {
         }
     };
 
-    // --- 3. ФУНКЦИЯ ВЫБОРА НОВОГО ФАЙЛА С ДИСКА ---
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
-            resetState(); // Сбрасываем глобальное состояние (fileId, etc.)
+            resetState();
             setFile(e.target.files[0]);
-            // Сбрасываем локальное состояние этой страницы
             setSelectedOutlierCols([]);
             setSelectedMissingCols([]);
             setImputationResult(null);
@@ -144,13 +140,12 @@ const DataCleanerPage = () => {
         }
     };
 
-    // --- 4. ФУНКЦИЯ ЗАГРУЗКИ НОВОГО ФАЙЛА НА СЕРВЕР ---
+
     const handleUpload = async () => {
         if (!file) return;
         setIsLoading(true);
         setError(null);
 
-        // Используем токен из контекста, а не из localStorage напрямую
         if (!token) {
             setError("Ошибка аутентификации: токен не найден. Пожалуйста, войдите в систему заново.");
             setIsLoading(false);
@@ -163,7 +158,6 @@ const DataCleanerPage = () => {
         try {
             const uploadRes = await api.post("/upload/", uploadFormData);
 
-            // Обновляем список файлов в UI после успешной загрузки
             const newFile = {
                 file_uid: uploadRes.data.file_id,
                 file_name: file.name,
@@ -171,37 +165,45 @@ const DataCleanerPage = () => {
             };
             setUserFiles(prev => [newFile, ...prev]);
 
-            // Сразу анализируем только что загруженный файл, вызвав другую нашу функцию
             await handleSelectFile(uploadRes.data.file_id, file.name);
 
         }
         catch (err: any) {
-            // --- ИЗМЕНЕНИЕ ---
             const message = err.response?.data?.detail || "Не удалось загрузить файл.";
             setError(message);
-            console.error(err);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // --- 5. ОСТАЛЬНЫЕ ОБРАБОТЧИКИ ---
+
     const handleImpute = async () => {
         if (!fileId || selectedMissingCols.length === 0) return;
         setIsImputing(true);
+        setError(null); // --- ИЗМЕНЕНИЕ: сбрасываем предыдущие ошибки и результаты ---
         setImputationResult(null);
+
         const formData = new FormData();
         formData.append("file_id", fileId);
         formData.append("columns", JSON.stringify(selectedMissingCols));
+
         try {
             const res = await api.post(`/impute-missing/`, formData);
+
+            // --- ИЗМЕНЕНИЕ: Обновляем всё состояние, а не только локальный result ---
             setImputationResult(res.data);
+            // Важно! Обновляем глобальное состояние для основного превью
+            setPreview(res.data.preview);
+            // Если бэк вернет `columns` и `total_rows`, нужно будет их тоже обновить
+            // setColumns(res.data.columns);
+            setTotalRows(res.data.preview.length);
+            setCurrentPage(1); // Сбрасываем на первую страницу
+            setSelectedMissingCols([]); // Сбрасываем выбор
+
             alert('Пропуски успешно заполнены!');
         } catch (err: any) {
-            // --- ИЗМЕНЕНИЕ ---
             const message = err.response?.data?.detail || "Ошибка при заполнении пропусков.";
-            alert(message); // Здесь можно оставить alert или использовать setError
-            console.error(err);
+            setError(message);
         } finally {
             setIsImputing(false);
         }
@@ -210,8 +212,10 @@ const DataCleanerPage = () => {
     const handleDetectOutliers = async () => {
         if (!fileId || selectedOutlierCols.length === 0) return;
         setIsAnalyzing(true);
+        setError(null); // --- ИЗМЕНЕНИЕ: сбрасываем предыдущие ошибки и результаты ---
         setOutlierCount(null);
         setOutliers([]);
+
         const formData = new FormData();
         formData.append("file_id", fileId);
         formData.append("columns", JSON.stringify(selectedOutlierCols));
@@ -219,11 +223,11 @@ const DataCleanerPage = () => {
             const res = await api.post(`/outliers/`, formData);
             setOutliers(res.data.outlier_preview);
             setOutlierCount(res.data.outlier_count);
+            // --- ИЗМЕНЕНИЕ: Сбрасываем выбор после успешного анализа ---
+            setSelectedOutlierCols([]);
         } catch (err: any) {
-            // --- ИЗМЕНЕНИЕ ---
             const message = err.response?.data?.detail || "Не удалось определить выбросы.";
             setError(message);
-            console.error(err);
         } finally {
             setIsAnalyzing(false);
         }
@@ -236,20 +240,15 @@ const DataCleanerPage = () => {
             const response = await api.get(`/download-cleaned/${fileId}`, {
                 responseType: 'blob',
             });
-
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-
             const currentFileName = file?.name || 'cleaned_data.csv';
             link.setAttribute('download', currentFileName);
-
             document.body.appendChild(link);
             link.click();
-
             link.parentNode?.removeChild(link);
             window.URL.revokeObjectURL(url);
-
         } catch (error) {
             console.error('Ошибка при скачивании файла:', error);
             setError('Не удалось скачать файл.');
@@ -268,17 +267,16 @@ const DataCleanerPage = () => {
         return <Database className="w-4 h-4" />;
     };
 
+    // Остальная часть JSX-разметки остается без изменений
     return (
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <aside className="lg:col-span-1">
-                {/* --- Сайдбар (без изменений) --- */}
                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 p-6 sticky top-28">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="p-2 bg-gradient-to-r from-gray-500 to-gray-700 rounded-xl"><History className="w-6 h-6 text-white" /></div>
                         <h2 className="text-xl font-semibold text-gray-800">Ваши файлы</h2>
                     </div>
-                    {/* --- ДОБАВЛЕНЫ КЛАССЫ ДЛЯ СКРОЛЛА --- */}
                     <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200/50">
                         {userFiles.length > 0 ? userFiles.map(f => (
                             <button
@@ -298,10 +296,7 @@ const DataCleanerPage = () => {
                     </div>
                 </div>
             </aside>
-
-                {/* --- ОСНОВНОЙ КОНТЕНТ --- */}
                 <main className="lg:col-span-3 space-y-8">
-                    {/* Upload Section */}
                     <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 p-8">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl"><Upload className="w-6 h-6 text-white" /></div>
@@ -328,7 +323,6 @@ const DataCleanerPage = () => {
                         )}
                     </div>
 
-                    {/* Сообщение-приветствие, если файл не выбран */}
                     {!fileId && (
                         <div className="text-center py-16 px-6 bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50">
                             <Database className="w-16 h-16 mx-auto text-gray-300" />
@@ -337,10 +331,8 @@ const DataCleanerPage = () => {
                         </div>
                     )}
 
-                    {/* Все остальные секции анализа, которые показываются только если есть fileId */}
                     {fileId && (
                         <>
-                            {/* Column Analysis Section */}
                             {columns.length > 0 && (
                             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden">
                                 <div className="p-6 border-b border-gray-200/50 bg-gradient-to-r from-green-50 to-emerald-50">
@@ -374,12 +366,11 @@ const DataCleanerPage = () => {
                             </div>
                             )}
 
-                            {/* Missing Values Imputation Section */}
                             {columns.length > 0 && columns.some(col => col.nulls > 0) && (
                             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl"><Zap className="w-6 h-6 text-white" /></div>
-                                    <div><h2 className="text-xl font-semibold text-gray-800">Заполнение пропусков с TabPFN</h2><p className="text-gray-600">Выберите столбцы для интеллектуального заполнения</p></div>
+                                    <div><h2 className="text-xl font-semibold text-gray-800">Заполнение пропусков</h2><p className="text-gray-600">Выберите столбцы для интеллектуального заполнения</p></div>
                                 </div>
                                 <div className="max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-400 scrollbar-track-purple-100">
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -472,7 +463,6 @@ const DataCleanerPage = () => {
                             </div>
                             )}
 
-                            {/* Outliers Results Section */}
                             {outlierCount !== null && (
                             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-red-200/50 overflow-hidden">
                                 <div className="p-6 border-b border-red-200/50 bg-gradient-to-r from-red-50 to-pink-50">
@@ -521,7 +511,6 @@ const DataCleanerPage = () => {
                                 </div>
                                 )}
 
-                            {/* Data Preview Section */}
                             {preview.length > 0 && (
                                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden">
                                     <div className="p-6 border-b border-gray-200/50">
@@ -564,7 +553,6 @@ const DataCleanerPage = () => {
 
 
 
-                            {/* Download Section */}
                             {fileId && (
                             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6">
                                 <h2 className="text-xl font-semibold mb-2">Скачать обработанный файл</h2>
