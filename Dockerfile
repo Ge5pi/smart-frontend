@@ -14,7 +14,9 @@ RUN npm run build
 
 # Продакшн-сервер: nginx
 FROM nginx:stable-alpine
-
+ARG FORCE_REBUILD
+ENV FORCE_REBUILD=${FORCE_REBUILD}
+RUN echo "Rebuild marker: $FORCE_REBUILD"
 # Копируем собранный проект из builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
