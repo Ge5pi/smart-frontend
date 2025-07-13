@@ -1,5 +1,6 @@
 # Сборка frontend-приложения (Vite/React)
 FROM node:20 as builder
+# force rebuild 2025-07-10
 
 WORKDIR /app
 
