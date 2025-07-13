@@ -30,10 +30,9 @@ const LoginPage = () => {
             const token = res.data.access_token;
 
             login(token);
-            navigate(from, { replace: true });
+            navigate("/", { replace: true });
 
         } catch (err: any) {
-            // ... (обработка ошибок без изменений)
             if (err.response && err.response.data && err.response.data.detail) {
                 setError(err.response.data.detail);
             } else {
