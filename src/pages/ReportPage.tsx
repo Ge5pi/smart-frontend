@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+// src/pages/ReportPage.tsx
+
+import { useState, useEffect } from 'react'; // <-- 1. 'React' удален
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { AlertTriangle, Loader, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Loader, CheckCircle } from 'lucide-react'; // <-- 2. 'FileText' и 'BarChart2' удалены
 import api from '../api';
 
-// Типы для данных отчета
+// Типы для данных отчета (без изменений)
 type ReportSection = {
     title: string;
     narrative: string;
@@ -17,20 +19,17 @@ type ReportData = {
     sections: ReportSection[];
 };
 
-// Компонент страницы
+// Компонент страницы (с исправлениями)
 const ReportPage = () => {
-    // Получаем ID из URL
     const { reportId, taskId } = useParams<{ reportId: string, taskId: string }>();
 
-    // Состояния
     const [status, setStatus] = useState('IN_PROGRESS');
     const [message, setMessage] = useState('Инициализация анализа...');
     const [report, setReport] = useState<ReportData | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Главный эффект для опроса статуса
     useEffect(() => {
-        if (!taskId || !reportId || status === 'COMPLETED' || status === 'FAILED') {
+        if (status === 'COMPLETED' || status === 'FAILED') {
             return;
         }
 
@@ -58,13 +57,14 @@ const ReportPage = () => {
                 setError('Не удалось получить статус задачи. Проверьте консоль.');
                 clearInterval(pollInterval);
             }
-        }, 3500); // Опрос каждые 3.5 секунды
+        }, 3500);
 
-        return () => clearInterval(intervalId);
+        // --- 3. ИСПРАВЛЕНИЕ ОШИБКИ ---
+        // Имя переменной было 'pollInterval', а не 'intervalId'
+        return () => clearInterval(pollInterval);
     }, [status, taskId, reportId]);
 
-    // --- Рендеринг в зависимости от состояния ---
-
+    // Остальная часть JSX-разметки остается без изменений...
     if (status === 'IN_PROGRESS') {
         return (
             <div className="flex flex-col justify-center items-center h-[80vh]">
