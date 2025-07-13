@@ -72,8 +72,7 @@ const ConnectionsPage = () => {
         try {
             const response = await api.post(`/analytics/reports/generate/${connectionId}`);
             const { report_id, task_id } = response.data;
-            // Перенаправляем пользователя на страницу отчета
-            navigate(`/reports/${report_id}/${task_id}`);
+            navigate(`/reports/${report_id}/${task_id}`, { replace: true });
         } catch (err: any) {
             alert(`Ошибка при запуске анализа: ${err.response?.data?.detail || 'Неизвестная ошибка'}`);
         }
