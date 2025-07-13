@@ -14,7 +14,6 @@ const LoginPage = () => {
     const location = useLocation();
     const { login } = useContext(AppContext)!;
 
-    const from = location.state?.from?.pathname || "/";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
