@@ -4,9 +4,12 @@ FROM node:20 as builder
 
 WORKDIR /app
 
+ARG REBUILD_TRIGGER=default
+ENV REBUILD_TRIGGER=${REBUILD_TRIGGER}
+
 # Копируем package.json и lock
 COPY package.json package-lock.json ./
-RUN npm install
+RUN echo "🚨 Triggered rebuild: $REBUILD_TRIGGER" && npm install --force
 
 # Копируем исходный код
 COPY . .
