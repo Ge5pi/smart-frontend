@@ -11,6 +11,8 @@ import DataCleanerPage from './pages/DataCleanerPage';
 import ChatPage from './pages/ChatPage';
 import RegistrationPage from './pages/RegistrationPage';
 import LoginPage from './pages/LoginPage';
+import ConnectionsPage from './pages/ConnectionsPage';
+import ReportPage from './pages/ReportPage'
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
             <Route index element={<DataCleanerPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="charts" element={<ChartsPage />} />
+            <Route path="/connections" element={<ConnectionsPage />} />
+            <Route path="/reports/:reportId/:taskId" element={<ReportPage />} />
           </Route>
         </Route>
 
