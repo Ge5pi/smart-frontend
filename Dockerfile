@@ -1,32 +1,33 @@
 # Сборка frontend-приложения (Vite/React)
 FROM node:20 as builder
-# force rebuild 2025-07-10
+
+# Вставляем маркер, чтобы форсировать пересборку (меняй значение при каждом деплое)
+ARG REBUILD_TRIGGER=2025-07-11-02
+ENV REBUILD_TRIGGER=$REBUILD_TRIGGER
 
 WORKDIR /app
 
-ARG REBUILD_TRIGGER=default
-ENV REBUILD_TRIGGER=${REBUILD_TRIGGER}
-
-# Копируем package.json и lock
+# Копируем зависимости
 COPY package.json package-lock.json ./
 RUN echo "🚨 Triggered rebuild: $REBUILD_TRIGGER" && npm install --force
 
-# Копируем исходный код
+# Копируем весь проект
 COPY . .
 RUN npm run build
 
 # Продакшн-сервер: nginx
 FROM nginx:stable-alpine
-ARG FORCE_REBUILD
-ENV FORCE_REBUILD=${FORCE_REBUILD}
-RUN echo "Rebuild marker: $FORCE_REBUILD"
-# Копируем собранный проект из builder
+
+# Копируем собранный фронт
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Удаляем дефолтный конфиг и вставляем свой
+# Кастомный конфиг nginx
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
+
+# Утилиты для отладки
 RUN apk add --no-cache bind-tools curl
+
 CMD ["nginx", "-g", "daemon off;"]
