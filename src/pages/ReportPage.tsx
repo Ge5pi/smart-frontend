@@ -1,9 +1,9 @@
 // src/pages/ReportPage.tsx
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { Loader, AlertTriangle, CheckCircle, Target, BookOpen } from 'lucide-react';
+import { Loader, AlertTriangle, CheckCircle, BookOpen } from 'lucide-react';
 import api from '../api';
 
 // Типы для новой структуры отчета
