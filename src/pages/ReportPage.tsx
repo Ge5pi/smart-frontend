@@ -101,7 +101,6 @@ interface DetailedFinding {
   category?: string;
 }
 
-// **ИСПРАВЛЕНО**: Разделены типы для успешных и неуспешных результатов
 interface SuccessResults {
   executive_summary: string;
   detailed_findings: DetailedFinding[];
@@ -119,7 +118,6 @@ interface SuccessResults {
     generate_charts: boolean;
     detailed_data: boolean;
   };
-  error?: never; // Указывает, что в успешном результате нет поля error
 }
 
 interface ErrorResults {
@@ -163,7 +161,6 @@ const ReportPage: React.FC = () => {
   const fetchReport = useCallback(async () => {
     if (!reportId) return;
 
-    // **ИСПРАВЛЕНО**: Безопасное создание заголовков
     const headers: HeadersInit = {};
     const token = getAuthToken();
     if (token) {
@@ -185,9 +182,9 @@ const ReportPage: React.FC = () => {
         stopPolling();
         setTaskStatus(null);
       } else if (data.status === 'FAILED') {
-        // **ИСПРАВЛЕНО**: Корректная обработка структуры ошибки
         if (data.results && 'error' in data.results) {
-          setError(data.results.error);
+          // **ИСПРАВЛЕНО**: Добавлено резервное значение для обеспечения типа string
+          setError(data.results.error || 'Произошла ошибка при генерации отчета.');
         } else {
           setError('Произошла неизвестная ошибка при генерации отчета.');
         }
@@ -195,11 +192,9 @@ const ReportPage: React.FC = () => {
         stopPolling();
       } else {
         setLoading(false);
-        // **ИСПРАВЛЕНО**: Безопасная передача task_id для начала опроса
         const taskId = data.task_id;
         if (taskId && !pollingInterval.current) {
           pollingInterval.current = window.setInterval(() => {
-            // Внутри интервала мы уверены, что taskId - это строка
             pollTaskStatus(taskId);
           }, 5000);
         }
@@ -214,7 +209,6 @@ const ReportPage: React.FC = () => {
   }, [reportId]);
 
   const pollTaskStatus = useCallback(async (taskId: string) => {
-    // **ИСПРАВЛЕНО**: Безопасное создание заголовков
     const headers: HeadersInit = {};
     const token = getAuthToken();
     if (token) {
@@ -246,7 +240,6 @@ const ReportPage: React.FC = () => {
   const submitFeedback = async () => {
     if (!reportId) return;
 
-    // **ИСПРАВЛЕНО**: Безопасное создание заголовков
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     const token = getAuthToken();
     if (token) {
@@ -283,7 +276,6 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Функции рендеринга остаются без изменений, но теперь они будут получать корректные данные
   const renderTaskProgress = () => {
     if (!taskStatus || report?.status === 'COMPLETED') return null;
     return (
