@@ -6,7 +6,6 @@ interface SelectProps {
   onValueChange: (value: string) => void;
   children: React.ReactNode;
   placeholder?: string;
-  disabled?: boolean;
 }
 
 interface SelectTriggerProps {
@@ -41,7 +40,6 @@ export const Select: React.FC<SelectProps> = ({
   value,
   onValueChange,
   children,
-  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
