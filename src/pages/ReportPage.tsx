@@ -38,8 +38,9 @@ import {
   XCircle,
   Clock
 } from 'lucide-react';
-// **ИСПРАВЛЕНО**: Импортируем функции и типы из централизованного модуля api
-import { getReport, getReportStatus, submitReportFeedback, EnhancedReport, EnhancedTaskStatus } from '../api';
+// **ИСПРАВЛЕНО**: Разделяем импорт типов и значений
+import { getReport, getReportStatus, submitReportFeedback } from '../api';
+import type { EnhancedReport, EnhancedTaskStatus } from '../api';
 
 
 const ReportPage: React.FC = () => {
@@ -62,7 +63,6 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // **ИСПРАВЛЕНО**: Используем функцию getReport из api.ts
   const fetchReport = useCallback(async () => {
     if (!reportId) return;
 
@@ -87,7 +87,6 @@ const ReportPage: React.FC = () => {
         setLoading(false);
         const taskId = data.task_id;
         if (taskId && !pollingInterval.current) {
-          // Запускаем опрос статуса
           pollingInterval.current = window.setInterval(() => {
             pollTaskStatus(taskId);
           }, 5000);
@@ -102,21 +101,18 @@ const ReportPage: React.FC = () => {
     }
   }, [reportId]);
 
-  // **ИСПРАВЛЕНО**: Используем функцию getReportStatus из api.ts
   const pollTaskStatus = useCallback(async (taskId: string) => {
     try {
       const response = await getReportStatus(taskId);
       const statusData = response.data;
       setTaskStatus(statusData);
 
-      // Если задача завершена (успешно или нет), останавливаем опрос и получаем финальный отчет
       if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
         stopPolling();
         fetchReport();
       }
     } catch (err: any) {
       console.error('Error polling task status:', err);
-      // Не показываем ошибку пользователю, просто пробуем еще раз
     }
   }, [fetchReport]);
 
@@ -125,7 +121,6 @@ const ReportPage: React.FC = () => {
     return () => stopPolling();
   }, [fetchReport]);
 
-  // **ИСПРАВЛЕНО**: Используем функцию submitReportFeedback из api.ts
   const submitFeedback = async () => {
     if (!reportId) return;
 
