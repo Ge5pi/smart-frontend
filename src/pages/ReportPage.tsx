@@ -38,119 +38,8 @@ import {
   XCircle,
   Clock
 } from 'lucide-react';
-
-// Interfaces (no changes)
-interface MLPattern {
-  type: string;
-  description: string;
-  confidence: number;
-}
-
-interface DomainContext {
-  domain_type: string;
-  confidence: number;
-  key_entities: string[];
-  business_metrics: string[];
-}
-
-interface AnalysisStats {
-  questions_processed: number;
-  successful_findings: number;
-  ml_patterns_found: number;
-  tables_coverage: number;
-  tables_analyzed: number;
-}
-
-interface DiversityReport {
-  total_tables: number;
-  analyzed_tables: number;
-  coverage_percentage: number;
-  underanalyzed_tables: string[];
-}
-
-interface EnhancedTaskStatus {
-  task_id: string;
-  status: string;
-  progress: string;
-  stage: string;
-  progress_percentage: number;
-  current_question: string;
-  diversity_report: DiversityReport;
-  summary: {
-    questions_processed: number;
-    findings_count: number;
-    ml_patterns_found: number;
-    domain_detected: string;
-  };
-  error?: string;
-}
-
-interface DetailedFinding {
-  question: string;
-  summary: string;
-  sql_query: string;
-  chart_url?: string;
-  data_preview?: any[];
-  data_stats?: any;
-  ml_patterns?: MLPattern[];
-  validation?: {
-    is_valid: boolean;
-    message: string;
-  };
-  confidence_score?: number;
-  category?: string;
-}
-
-interface SuccessResults {
-  executive_summary: string;
-  detailed_findings: DetailedFinding[];
-  recommendations: string[];
-  domain_context: DomainContext;
-  ml_insights: {
-    total_patterns: number;
-    pattern_types: Record<string, MLPattern[]>;
-    high_confidence_patterns: any[];
-  };
-  analysis_stats: AnalysisStats;
-  diversity_report: DiversityReport;
-  adaptive_strategy?: {
-    preferred_question_types: string[];
-    generate_charts: boolean;
-    detailed_data: boolean;
-  };
-}
-
-interface ErrorResults {
-  error: string;
-  details?: string;
-  stage?: string;
-}
-
-interface EnhancedReport {
-  id: number;
-  status: string;
-  created_at: string;
-  task_id?: string;
-  results: SuccessResults | ErrorResults | null;
-}
-
-// Helper function to safely fetch and parse JSON
-async function fetchAndParseJSON<T>(url: string, options: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
-
-  if (!response.ok) {
-    throw new Error(`Сетевая ошибка: ${response.status} ${response.statusText}`);
-  }
-
-  const contentType = response.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/json")) {
-    // **ИСПРАВЛЕНО**: Перехватываем ошибку, когда вместо JSON приходит HTML или другой тип данных
-    console.error("Expected JSON, received:", await response.text());
-    throw new TypeError("Ошибка ответа сервера. Ожидался JSON, но был получен другой формат.");
-  }
-
-  return response.json();
-}
+// **ИСПРАВЛЕНО**: Импортируем функции и типы из централизованного модуля api
+import { getReport, getReportStatus, submitReportFeedback, EnhancedReport, EnhancedTaskStatus } from '../api';
 
 
 const ReportPage: React.FC = () => {
@@ -166,10 +55,6 @@ const ReportPage: React.FC = () => {
 
   const pollingInterval = useRef<number | null>(null);
 
-  const getAuthToken = () => {
-    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-  };
-
   const stopPolling = () => {
     if (pollingInterval.current) {
       clearInterval(pollingInterval.current);
@@ -177,17 +62,13 @@ const ReportPage: React.FC = () => {
     }
   };
 
+  // **ИСПРАВЛЕНО**: Используем функцию getReport из api.ts
   const fetchReport = useCallback(async () => {
     if (!reportId) return;
 
-    const headers: HeadersInit = {};
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     try {
-      const data = await fetchAndParseJSON<EnhancedReport>(`/analytics/reports/${reportId}`, { headers });
+      const response = await getReport(reportId);
+      const data = response.data;
       setReport(data);
 
       if (data.status === 'COMPLETED') {
@@ -206,38 +87,36 @@ const ReportPage: React.FC = () => {
         setLoading(false);
         const taskId = data.task_id;
         if (taskId && !pollingInterval.current) {
+          // Запускаем опрос статуса
           pollingInterval.current = window.setInterval(() => {
             pollTaskStatus(taskId);
           }, 5000);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка');
+      const message = err.response?.data?.detail || err.message || 'Произошла неизвестная ошибка';
+      setError(message);
       setLoading(false);
       stopPolling();
     }
   }, [reportId]);
 
+  // **ИСПРАВЛЕНО**: Используем функцию getReportStatus из api.ts
   const pollTaskStatus = useCallback(async (taskId: string) => {
-    const headers: HeadersInit = {};
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     try {
-      const statusData = await fetchAndParseJSON<EnhancedTaskStatus>(`/analytics/reports/status/${taskId}`, { headers });
+      const response = await getReportStatus(taskId);
+      const statusData = response.data;
       setTaskStatus(statusData);
 
+      // Если задача завершена (успешно или нет), останавливаем опрос и получаем финальный отчет
       if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
         stopPolling();
         fetchReport();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error polling task status:', err);
-      setError(err instanceof Error ? err.message : 'Ошибка получения статуса задачи.');
-      stopPolling();
+      // Не показываем ошибку пользователю, просто пробуем еще раз
     }
   }, [fetchReport]);
 
@@ -246,31 +125,22 @@ const ReportPage: React.FC = () => {
     return () => stopPolling();
   }, [fetchReport]);
 
+  // **ИСПРАВЛЕНО**: Используем функцию submitReportFeedback из api.ts
   const submitFeedback = async () => {
     if (!reportId) return;
 
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     try {
-      await fetchAndParseJSON(`/analytics/reports/feedback/${reportId}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          rating: feedbackRating,
-          comment: feedbackComment,
-          useful_sections: []
-        })
+      await submitReportFeedback(reportId, {
+        rating: feedbackRating,
+        comment: feedbackComment,
       });
       setShowFeedbackDialog(false);
       setFeedbackComment('');
       setFeedbackRating(5);
-    } catch (err) {
+      alert('Спасибо за ваш отзыв!');
+    } catch (err: any) {
       console.error('Error submitting feedback:', err);
-      // Optionally show an error to the user
+      alert('Не удалось отправить отзыв.');
     }
   };
 
@@ -426,7 +296,7 @@ const ReportPage: React.FC = () => {
                   <span className="text-sm text-gray-600">{patterns.length} паттернов</span>
                 </div>
                 <div className="space-y-2">
-                  {(patterns as MLPattern[]).slice(0, 3).map((pattern, index: number) => (
+                  {(patterns as any[]).slice(0, 3).map((pattern, index: number) => (
                     <div key={index} className="bg-gray-50 rounded p-3">
                       <p className="text-sm">{pattern.description}</p>
                       <p className="text-xs text-gray-600 mt-1">
