@@ -139,16 +139,30 @@ const ReportPage: React.FC = () => {
   const [feedbackComment, setFeedbackComment] = useState('');
   const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
 
+
+  const fetchTaskId = useCallback(async () => {
+  if (!reportId) return;
+
+  try {
+    const response = await fetch(`/analytics/reports/${reportId}`);
+    if (response.ok) {
+      const report = await response.json();
+      return report.task_id;
+    }
+  } catch (err) {
+    console.error('Error fetching task ID:', err);
+  }
+  return null;
+}, [reportId]);
+
   // Функция для получения статуса задачи
   const fetchTaskStatus = useCallback(async () => {
+  const taskId = await fetchTaskId();
   if (!reportId) return;
 
   try {
     // Исправить URL - убрать /api префикс
-    const url = `/analytics/reports/status/${reportId}`;
-    console.log(`Making request to: ${url}`);
-
-    const response = await fetch(url);
+    const response = await fetch(`/analytics/reports/status/${taskId}`);
     console.log(`Response status: ${response.status}`);
     console.log(`Response headers:`, response.headers);
 
