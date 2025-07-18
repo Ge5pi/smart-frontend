@@ -74,6 +74,7 @@ const ReportPage: React.FC = () => {
       const response = await getReport(reportId);
       const data = response.data;
       setReport(data);
+      console.log('>>> DEBUG REPORT', data);
 
       if (data.status === 'COMPLETED') {
         stopPolling();
