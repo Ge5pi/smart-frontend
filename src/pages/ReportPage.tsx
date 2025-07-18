@@ -141,29 +141,53 @@ const ReportPage: React.FC = () => {
 
   // Функция для получения статуса задачи
   const fetchTaskStatus = useCallback(async () => {
-    if (!reportId) return;
+  if (!reportId) return;
 
-    try {
-      const response = await fetch(`/api/analytics/reports/status/${reportId}`);
-      if (!response.ok) throw new Error('Failed to fetch task status');
+  try {
+    // Исправить URL - убрать /api префикс
+    const url = `/analytics/reports/status/${reportId}`;
+    console.log(`Making request to: ${url}`);
 
-      const status: EnhancedTaskStatus = await response.json();
-      setTaskStatus(status);
+    const response = await fetch(url);
+    console.log(`Response status: ${response.status}`);
+    console.log(`Response headers:`, response.headers);
 
-      // Если задача завершена, получаем полный отчет
-      if (status.status === 'SUCCESS') {
-        await fetchReport();
-        if (refreshInterval) {
-          clearInterval(refreshInterval);
-          setRefreshInterval(null);
-        }
+    // Проверяем content-type
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('Server returned non-JSON response');
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const status: EnhancedTaskStatus = await response.json();
+    setTaskStatus(status);
+
+    if (status.status === 'SUCCESS' || status.status === 'FAILURE') {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        setRefreshInterval(null);
       }
 
-    } catch (err) {
-      console.error('Error fetching task status:', err);
-      setError('Ошибка получения статуса задачи');
+      if (status.status === 'SUCCESS') {
+        await fetchReport();
+      }
     }
-  }, [reportId, refreshInterval]);
+
+  } catch (err) {
+    console.error('Error fetching task status:', err);
+    setError('Ошибка получения статуса задачи');
+
+    // Останавливаем polling при ошибке
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      setRefreshInterval(null);
+    }
+  }
+}, [reportId, refreshInterval]);
 
   // Функция для получения готового отчета
   const fetchReport = useCallback(async () => {
