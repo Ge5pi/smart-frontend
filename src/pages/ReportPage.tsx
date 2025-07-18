@@ -26,7 +26,6 @@ import {
   Textarea,
   Label
 } from '../components/ui';
-
 import {
   RefreshCw,
   ArrowLeft,
@@ -106,6 +105,7 @@ interface EnhancedReport {
   id: number;
   status: string;
   created_at: string;
+  task_id?: string;
   results: {
     executive_summary: string;
     detailed_findings: DetailedFinding[];
@@ -113,7 +113,7 @@ interface EnhancedReport {
     domain_context: DomainContext;
     ml_insights: {
       total_patterns: number;
-      pattern_types: Record<string, any[]>;
+      pattern_types: Record<string, MLPattern[]>;
       high_confidence_patterns: any[];
     };
     analysis_stats: AnalysisStats;
@@ -129,7 +129,6 @@ interface EnhancedReport {
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
-
   const [taskStatus, setTaskStatus] = useState<EnhancedTaskStatus | null>(null);
   const [report, setReport] = useState<EnhancedReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,100 +136,94 @@ const ReportPage: React.FC = () => {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState('');
-  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // Получение токена авторизации
+  const getAuthToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  };
 
-  const fetchTaskId = useCallback(async () => {
-  if (!reportId) return;
-
-  try {
-    const response = await fetch(`/analytics/reports/${reportId}`);
-    if (response.ok) {
-      const report = await response.json();
-      return report.task_id;
-    }
-  } catch (err) {
-    console.error('Error fetching task ID:', err);
-  }
-  return null;
-}, [reportId]);
-
-  // Функция для получения статуса задачи
+  // Функция для получения статуса задачи и отчета
   const fetchTaskStatus = useCallback(async () => {
-  if (!reportId) return;
-
-  try {
-    // Сначала получаем отчет чтобы взять task_id
-    const reportResponse = await fetch(`/analytics/reports/${reportId}`);
-    if (!reportResponse.ok) return;
-
-    const reportData = await reportResponse.json();
-    const taskId = reportData.task_id;
-
-    if (!taskId) return;
-
-    // Теперь получаем статус по task_id
-    const statusResponse = await fetch(`/analytics/reports/status/${taskId}`);
-    if (!statusResponse.ok) return;
-
-    const status = await statusResponse.json();
-    setTaskStatus(status);
-
-    // Логика остановки polling остается той же
-  } catch (err) {
-    console.error('Error fetching task status:', err);
-    setError('Ошибка получения статуса задачи');
-  }
-}, [reportId, refreshInterval]);
-
-  // Функция для получения готового отчета
-  const fetchReport = useCallback(async () => {
     if (!reportId) return;
 
     try {
-      const response = await fetch(`/analytics/reports/${reportId}`);
-      if (!response.ok) {
-        if (response.status === 202) {
-          // Отчет еще в процессе
-          return;
+      // Сначала получаем отчет чтобы взять task_id
+      const reportResponse = await fetch(`/analytics/reports/${reportId}`);
+      if (!reportResponse.ok) return;
+
+      const reportData: EnhancedReport = await reportResponse.json();
+
+      // Если отчет готов, устанавливаем его
+      if (reportData.status === 'SUCCESS') {
+        setReport(reportData);
+        setLoading(false);
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+          setRefreshInterval(null);
         }
-        throw new Error('Failed to fetch report');
+        return;
       }
 
-      const reportData: EnhancedReport = await response.json();
-      setReport(reportData);
-      setLoading(false);
+      const taskId = reportData.task_id;
+      if (!taskId) return;
+
+      // Получаем статус по task_id
+      const statusResponse = await fetch(`/analytics/reports/status/${taskId}`);
+      if (!statusResponse.ok) return;
+
+      const status: EnhancedTaskStatus = await statusResponse.json();
+      setTaskStatus(status);
+
+      // Останавливаем polling если задача завершена
+      if (status.status === 'SUCCESS' || status.status === 'FAILURE') {
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+          setRefreshInterval(null);
+        }
+
+        // Если задача завершена успешно, получаем финальный отчет
+        if (status.status === 'SUCCESS') {
+          const finalReportResponse = await fetch(`/analytics/reports/${reportId}`);
+          if (finalReportResponse.ok) {
+            const finalReport: EnhancedReport = await finalReportResponse.json();
+            setReport(finalReport);
+            setLoading(false);
+          }
+        }
+      }
 
     } catch (err) {
-      console.error('Error fetching report:', err);
-      setError('Ошибка получения отчета');
-      setLoading(false);
+      console.error('Error fetching task status:', err);
+      setError('Ошибка получения статуса задачи');
     }
-  }, [reportId]);
+  }, [reportId, refreshInterval]);
 
   // Отправка обратной связи
   const submitFeedback = async () => {
     if (!reportId) return;
 
     try {
+      const token = getAuthToken();
+
       const response = await fetch(`/analytics/reports/feedback/${reportId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // Добавить токен авторизации
-          },
-          body: JSON.stringify({
-            rating: feedbackRating,
-            comment: feedbackComment,
-            useful_sections: []
-          })
-        });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          rating: feedbackRating,
+          comment: feedbackComment,
+          useful_sections: []
+        })
+      });
 
       if (!response.ok) throw new Error('Failed to submit feedback');
 
       setShowFeedbackDialog(false);
       setFeedbackComment('');
-      // Показываем уведомление об успехе
+      setFeedbackRating(5);
 
     } catch (err) {
       console.error('Error submitting feedback:', err);
@@ -284,49 +277,39 @@ const ReportPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Прогресс</span>
-              <span className="text-sm text-gray-600">
-                {taskStatus.progress_percentage}%
-              </span>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>Прогресс</span>
+                <span>{taskStatus.progress_percentage}%</span>
+              </div>
+              <Progress value={taskStatus.progress_percentage} className="w-full" />
             </div>
-
-            <Progress value={taskStatus.progress_percentage} className="w-full" />
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Этап:</span> {taskStatus.stage}
+                <strong>Этап:</strong> {taskStatus.stage}
               </div>
               <div>
-                <span className="font-medium">Статус:</span> {taskStatus.status}
+                <strong>Статус:</strong> {taskStatus.status}
               </div>
             </div>
 
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">Текущее действие:</span> {taskStatus.progress}
+            <div>
+              <strong>Текущее действие:</strong> {taskStatus.progress}
             </div>
 
             {taskStatus.current_question && (
-              <div className="text-sm">
-                <span className="font-medium">Текущий вопрос:</span>
-                <div className="mt-1 p-2 bg-gray-50 rounded text-xs">
+              <Alert>
+                <AlertDescription>
+                  <strong>Текущий вопрос:</strong><br />
                   {taskStatus.current_question}
-                </div>
-              </div>
+                </AlertDescription>
+              </Alert>
             )}
 
             {taskStatus.diversity_report && (
               <div className="text-sm">
-                <span className="font-medium">Покрытие таблиц:</span>
-                <div className="mt-1 flex items-center gap-2">
-                  <Progress
-                    value={taskStatus.diversity_report.coverage_percentage}
-                    className="flex-1 h-2"
-                  />
-                  <span className="text-xs">
-                    {taskStatus.diversity_report.analyzed_tables}/{taskStatus.diversity_report.total_tables}
-                  </span>
-                </div>
+                <strong>Покрытие таблиц:</strong> {taskStatus.diversity_report.analyzed_tables}/{taskStatus.diversity_report.total_tables}
               </div>
             )}
           </div>
@@ -340,56 +323,60 @@ const ReportPage: React.FC = () => {
     if (!report?.results) return null;
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Резюме анализа
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-700 leading-relaxed">
-            {report.results.executive_summary}
-          </p>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5" />
+              Резюме анализа
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 mb-4">{report.results.executive_summary}</p>
 
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-blue-50 rounded">
-              <div className="text-2xl font-bold text-blue-600">
-                {report.results.analysis_stats.questions_processed}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {report.results.analysis_stats.questions_processed}
+                </div>
+                <div className="text-sm text-gray-600">Вопросов</div>
               </div>
-              <div className="text-sm text-blue-600">Вопросов</div>
-            </div>
-
-            <div className="text-center p-3 bg-green-50 rounded">
-              <div className="text-2xl font-bold text-green-600">
-                {report.results.analysis_stats.successful_findings}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {report.results.analysis_stats.successful_findings}
+                </div>
+                <div className="text-sm text-gray-600">Результатов</div>
               </div>
-              <div className="text-sm text-green-600">Результатов</div>
-            </div>
-
-            <div className="text-center p-3 bg-purple-50 rounded">
-              <div className="text-2xl font-bold text-purple-600">
-                {report.results.analysis_stats.ml_patterns_found}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {report.results.analysis_stats.ml_patterns_found}
+                </div>
+                <div className="text-sm text-gray-600">ML-паттернов</div>
               </div>
-              <div className="text-sm text-purple-600">ML-паттернов</div>
-            </div>
-
-            <div className="text-center p-3 bg-orange-50 rounded">
-              <div className="text-2xl font-bold text-orange-600">
-                {report.results.analysis_stats.tables_coverage.toFixed(1)}%
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {report.results.analysis_stats.tables_coverage.toFixed(1)}%
+                </div>
+                <div className="text-sm text-gray-600">Покрытие</div>
               </div>
-              <div className="text-sm text-orange-600">Покрытие</div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     );
   };
 
   // Рендер ML-инсайтов
   const renderMLInsights = () => {
     if (!report?.results?.ml_insights || report.results.ml_insights.total_patterns === 0) {
-      return null;
+      return (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Brain className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">ML-паттерны не обнаружены</p>
+          </CardContent>
+        </Card>
+      );
     }
 
     return (
@@ -401,36 +388,28 @@ const ReportPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <p className="mb-4">Обнаружено {report.results.ml_insights.total_patterns} паттернов</p>
+
           <div className="space-y-4">
-            <div className="text-sm text-gray-600">
-              Обнаружено <span className="font-medium">{report.results.ml_insights.total_patterns}</span> паттернов
-            </div>
-
-            <div className="grid gap-3">
-              {Object.entries(report.results.ml_insights.pattern_types).map(([type, patterns]) => (
-                <div key={type} className="border rounded p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <Badge className={getPatternColor(type)}>
-                      {type}
-                    </Badge>
-                    <span className="text-sm text-gray-500">
-                      {patterns.length} паттернов
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {patterns.slice(0, 3).map((pattern: any, index: number) => (
-                      <div key={index} className="text-sm">
-                        <div className="font-medium">{pattern.description}</div>
-                        <div className="text-xs text-gray-500">
-                          Уверенность: {(pattern.confidence * 100).toFixed(1)}%
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            {Object.entries(report.results.ml_insights.pattern_types).map(([type, patterns]) => (
+              <div key={type} className="border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className={getPatternColor(type)}>{type}</Badge>
+                  <span className="text-sm text-gray-600">{patterns.length} паттернов</span>
                 </div>
-              ))}
-            </div>
+
+                <div className="space-y-2">
+                  {patterns.slice(0, 3).map((pattern: MLPattern, index: number) => (
+                    <div key={index} className="bg-gray-50 rounded p-3">
+                      <p className="text-sm">{pattern.description}</p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Уверенность: {(pattern.confidence * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -452,33 +431,29 @@ const ReportPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Тип:</span>
-              <Badge variant="outline">{domain_context.domain_type}</Badge>
-              <span className="text-sm text-gray-500">
+          <div className="space-y-4">
+            <div>
+              <strong>Тип:</strong>
+              <Badge className="ml-2">{domain_context.domain_type}</Badge>
+              <span className="text-sm text-gray-600 ml-2">
                 (уверенность: {(domain_context.confidence * 100).toFixed(1)}%)
               </span>
             </div>
 
             <div>
-              <span className="font-medium">Ключевые сущности:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
+              <strong>Ключевые сущности:</strong>
+              <div className="flex flex-wrap gap-2 mt-2">
                 {domain_context.key_entities.map((entity, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {entity}
-                  </Badge>
+                  <Badge key={index} variant="outline">{entity}</Badge>
                 ))}
               </div>
             </div>
 
             <div>
-              <span className="font-medium">Бизнес-метрики:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
+              <strong>Бизнес-метрики:</strong>
+              <div className="flex flex-wrap gap-2 mt-2">
                 {domain_context.business_metrics.map((metric, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {metric}
-                  </Badge>
+                  <Badge key={index} variant="outline">{metric}</Badge>
                 ))}
               </div>
             </div>
@@ -493,12 +468,12 @@ const ReportPage: React.FC = () => {
     if (!report?.results?.detailed_findings) return null;
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {report.results.detailed_findings.map((finding, index) => (
           <Card key={index}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span className="text-lg">{finding.question}</span>
+                <span>{finding.question}</span>
                 <div className="flex items-center gap-2">
                   {finding.confidence_score && (
                     <Badge variant="outline">
@@ -506,86 +481,79 @@ const ReportPage: React.FC = () => {
                     </Badge>
                   )}
                   {finding.category && (
-                    <Badge variant="secondary">{finding.category}</Badge>
+                    <Badge>{finding.category}</Badge>
                   )}
                 </div>
               </CardTitle>
             </CardHeader>
-
             <CardContent>
-              <div className="space-y-4">
-                <p className="text-gray-700">{finding.summary}</p>
+              <p className="text-gray-700 mb-4">{finding.summary}</p>
 
-                {finding.chart_url && (
-                  <div className="border rounded p-4">
-                    <img
-                      src={finding.chart_url}
-                      alt="Визуализация данных"
-                      className="w-full h-auto rounded"
-                    />
+              {finding.chart_url && (
+                <div className="mb-4">
+                  <img
+                    src={finding.chart_url}
+                    alt="Диаграмма"
+                    className="max-w-full h-auto rounded border"
+                  />
+                </div>
+              )}
+
+              {finding.ml_patterns && finding.ml_patterns.length > 0 && (
+                <div className="mb-4">
+                  <strong>ML-паттерны:</strong>
+                  <div className="mt-2 space-y-2">
+                    {finding.ml_patterns.map((pattern, idx) => (
+                      <div key={idx} className="bg-gray-50 rounded p-2">
+                        <Badge className={getPatternColor(pattern.type)}>{pattern.type}</Badge>
+                        <p className="text-sm mt-1">{pattern.description}</p>
+                        <p className="text-xs text-gray-600">
+                          ({(pattern.confidence * 100).toFixed(1)}%)
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {finding.ml_patterns && finding.ml_patterns.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-2">ML-паттерны:</h4>
-                    <div className="space-y-2">
-                      {finding.ml_patterns.map((pattern, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <Badge className={getPatternColor(pattern.type)}>
-                            {pattern.type}
-                          </Badge>
-                          <span className="text-sm">{pattern.description}</span>
-                          <span className="text-xs text-gray-500">
-                            ({(pattern.confidence * 100).toFixed(1)}%)
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {finding.data_preview && finding.data_preview.length > 0 && (
-                  <details className="border rounded p-3">
-                    <summary className="cursor-pointer font-medium">
-                      Данные ({finding.data_preview.length} записей)
-                    </summary>
-                    <div className="mt-2 overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            {Object.keys(finding.data_preview[0]).map(key => (
-                              <th key={key} className="text-left p-2">{key}</th>
+              {finding.data_preview && finding.data_preview.length > 0 && (
+                <div className="mb-4">
+                  <strong>Данные ({finding.data_preview.length} записей)</strong>
+                  <div className="mt-2 overflow-x-auto">
+                    <table className="min-w-full border-collapse border border-gray-200">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          {Object.keys(finding.data_preview[0]).map(key => (
+                            <th key={key} className="border border-gray-200 px-4 py-2 text-left">
+                              {key}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {finding.data_preview.slice(0, 5).map((row, idx) => (
+                          <tr key={idx}>
+                            {Object.values(row).map((val, vidx) => (
+                              <td key={vidx} className="border border-gray-200 px-4 py-2">
+                                {String(val)}
+                              </td>
                             ))}
                           </tr>
-                        </thead>
-                        <tbody>
-                          {finding.data_preview.slice(0, 5).map((row, idx) => (
-                            <tr key={idx} className="border-b">
-                              {Object.values(row).map((val, vidx) => (
-                                <td key={vidx} className="p-2">
-                                  {String(val)}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                )}
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
-                {finding.sql_query && (
-                  <details className="border rounded p-3">
-                    <summary className="cursor-pointer font-medium">
-                      SQL запрос
-                    </summary>
-                    <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-x-auto">
-                      {finding.sql_query}
-                    </pre>
-                  </details>
-                )}
-              </div>
+              {finding.sql_query && (
+                <div>
+                  <strong>SQL запрос</strong>
+                  <pre className="mt-2 bg-gray-100 p-4 rounded text-sm overflow-x-auto">
+                    <code>{finding.sql_query}</code>
+                  </pre>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -601,19 +569,19 @@ const ReportPage: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5" />
+            <TrendingUp className="w-5 h-5" />
             Рекомендации
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2">
+          <div className="space-y-3">
             {report.results.recommendations.map((recommendation, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <span className="text-blue-500 mt-1">•</span>
-                <span className="text-gray-700">{recommendation}</span>
-              </li>
+              <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded">
+                <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm">{recommendation}</p>
+              </div>
             ))}
-          </ul>
+          </div>
         </CardContent>
       </Card>
     );
@@ -622,10 +590,10 @@ const ReportPage: React.FC = () => {
   // Основной рендер
   if (loading && !taskStatus) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-          <span className="ml-2 text-lg">Загрузка отчета...</span>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Загрузка отчета...</p>
         </div>
       </div>
     );
@@ -635,7 +603,7 @@ const ReportPage: React.FC = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
+          <AlertTriangle className="w-4 h-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
         <Button onClick={() => navigate('/connections')} className="mt-4">
@@ -649,27 +617,21 @@ const ReportPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">
-          Отчет анализа #{reportId}
-        </h1>
-
+        <h1 className="text-3xl font-bold">Отчет анализа #{reportId}</h1>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
-            size="sm"
             onClick={() => setShowFeedbackDialog(true)}
             disabled={!report}
+            variant="outline"
           >
-            <Star className="w-4 h-4 mr-1" />
+            <Star className="w-4 h-4 mr-2" />
             Оценить
           </Button>
-
           <Button
-            variant="outline"
-            size="sm"
             onClick={() => navigate('/connections')}
+            variant="outline"
           >
-            <ArrowLeft className="w-4 h-4 mr-1" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Назад
           </Button>
         </div>
@@ -680,7 +642,7 @@ const ReportPage: React.FC = () => {
 
       {/* Основной контент отчета */}
       {report && (
-        <Tabs defaultValue="summary" className="space-y-6">
+        <Tabs defaultValue="summary" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="summary">Резюме</TabsTrigger>
             <TabsTrigger value="findings">Результаты</TabsTrigger>
@@ -689,23 +651,23 @@ const ReportPage: React.FC = () => {
             <TabsTrigger value="recommendations">Рекомендации</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="summary" className="space-y-6">
+          <TabsContent value="summary" className="mt-6">
             {renderExecutiveSummary()}
           </TabsContent>
 
-          <TabsContent value="findings" className="space-y-6">
+          <TabsContent value="findings" className="mt-6">
             {renderDetailedFindings()}
           </TabsContent>
 
-          <TabsContent value="ml-insights" className="space-y-6">
+          <TabsContent value="ml-insights" className="mt-6">
             {renderMLInsights()}
           </TabsContent>
 
-          <TabsContent value="context" className="space-y-6">
+          <TabsContent value="context" className="mt-6">
             {renderDomainContext()}
           </TabsContent>
 
-          <TabsContent value="recommendations" className="space-y-6">
+          <TabsContent value="recommendations" className="mt-6">
             {renderRecommendations()}
           </TabsContent>
         </Tabs>
@@ -717,11 +679,10 @@ const ReportPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Оценка отчета</DialogTitle>
           </DialogHeader>
-
           <div className="space-y-4">
             <div>
               <Label htmlFor="rating">Оценка (1-5)</Label>
-              <Select value={feedbackRating.toString()} onValueChange={(value: string) => setFeedbackRating(Number(value))}>
+              <Select value={String(feedbackRating)} onValueChange={(value) => setFeedbackRating(Number(value))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -740,7 +701,7 @@ const ReportPage: React.FC = () => {
               <Textarea
                 id="comment"
                 value={feedbackComment}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFeedbackComment(e.target.value)}
+                onChange={(e) => setFeedbackComment(e.target.value)}
                 placeholder="Что понравилось или что можно улучшить?"
                 rows={3}
               />
