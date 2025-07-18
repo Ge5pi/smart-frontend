@@ -36,8 +36,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Clock,
-  Zap
+  Clock
 } from 'lucide-react';
 
 interface MLPattern {
@@ -136,7 +135,7 @@ const ReportPage: React.FC = () => {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState('');
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
 
   // Получение токена авторизации
   const getAuthToken = () => {
