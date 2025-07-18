@@ -39,7 +39,7 @@ import {
   Clock
 } from 'lucide-react';
 
-// Interfaces
+// Interfaces (no changes)
 interface MLPattern {
   type: string;
   description: string;
@@ -128,11 +128,30 @@ interface ErrorResults {
 
 interface EnhancedReport {
   id: number;
-  status: string; // PENDING, PROGRESS, COMPLETED, FAILED
+  status: string;
   created_at: string;
   task_id?: string;
   results: SuccessResults | ErrorResults | null;
 }
+
+// Helper function to safely fetch and parse JSON
+async function fetchAndParseJSON<T>(url: string, options: RequestInit): Promise<T> {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    throw new Error(`Сетевая ошибка: ${response.status} ${response.statusText}`);
+  }
+
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    // **ИСПРАВЛЕНО**: Перехватываем ошибку, когда вместо JSON приходит HTML или другой тип данных
+    console.error("Expected JSON, received:", await response.text());
+    throw new TypeError("Ошибка ответа сервера. Ожидался JSON, но был получен другой формат.");
+  }
+
+  return response.json();
+}
+
 
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
@@ -168,13 +187,7 @@ const ReportPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/analytics/reports/${reportId}`, { headers });
-
-      if (!response.ok) {
-        throw new Error(`Не удалось загрузить отчет. Статус: ${response.status}`);
-      }
-
-      const data: EnhancedReport = await response.json();
+      const data = await fetchAndParseJSON<EnhancedReport>(`/analytics/reports/${reportId}`, { headers });
       setReport(data);
 
       if (data.status === 'COMPLETED') {
@@ -183,7 +196,6 @@ const ReportPage: React.FC = () => {
         setTaskStatus(null);
       } else if (data.status === 'FAILED') {
         if (data.results && 'error' in data.results) {
-          // **ИСПРАВЛЕНО**: Добавлено резервное значение для обеспечения типа string
           setError(data.results.error || 'Произошла ошибка при генерации отчета.');
         } else {
           setError('Произошла неизвестная ошибка при генерации отчета.');
@@ -199,7 +211,6 @@ const ReportPage: React.FC = () => {
           }, 5000);
         }
       }
-
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка');
@@ -216,9 +227,7 @@ const ReportPage: React.FC = () => {
     }
 
     try {
-      const statusResponse = await fetch(`/analytics/reports/status/${taskId}`, { headers });
-      if (!statusResponse.ok) return;
-      const statusData: EnhancedTaskStatus = await statusResponse.json();
+      const statusData = await fetchAndParseJSON<EnhancedTaskStatus>(`/analytics/reports/status/${taskId}`, { headers });
       setTaskStatus(statusData);
 
       if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
@@ -227,7 +236,7 @@ const ReportPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Error polling task status:', err);
-      setError('Ошибка получения статуса задачи.');
+      setError(err instanceof Error ? err.message : 'Ошибка получения статуса задачи.');
       stopPolling();
     }
   }, [fetchReport]);
@@ -247,7 +256,7 @@ const ReportPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/analytics/reports/feedback/${reportId}`, {
+      await fetchAndParseJSON(`/analytics/reports/feedback/${reportId}`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -256,14 +265,12 @@ const ReportPage: React.FC = () => {
           useful_sections: []
         })
       });
-
-      if (!response.ok) throw new Error('Failed to submit feedback');
-
       setShowFeedbackDialog(false);
       setFeedbackComment('');
       setFeedbackRating(5);
     } catch (err) {
       console.error('Error submitting feedback:', err);
+      // Optionally show an error to the user
     }
   };
 
@@ -275,6 +282,8 @@ const ReportPage: React.FC = () => {
       default: return <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />;
     }
   };
+
+  // Остальная часть компонента (функции рендеринга и JSX) остается без изменений
 
   const renderTaskProgress = () => {
     if (!taskStatus || report?.status === 'COMPLETED') return null;
