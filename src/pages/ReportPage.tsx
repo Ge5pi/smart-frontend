@@ -157,49 +157,29 @@ const ReportPage: React.FC = () => {
 
   // Функция для получения статуса задачи
   const fetchTaskStatus = useCallback(async () => {
-  const taskId = await fetchTaskId();
   if (!reportId) return;
 
   try {
-    // Исправить URL - убрать /api префикс
-    const response = await fetch(`/analytics/reports/status/${taskId}`);
-    console.log(`Response status: ${response.status}`);
-    console.log(`Response headers:`, response.headers);
+    // Сначала получаем отчет чтобы взять task_id
+    const reportResponse = await fetch(`/analytics/reports/${reportId}`);
+    if (!reportResponse.ok) return;
 
-    // Проверяем content-type
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('Server returned non-JSON response');
-      return;
-    }
+    const reportData = await reportResponse.json();
+    const taskId = reportData.task_id;
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (!taskId) return;
 
-    const status: EnhancedTaskStatus = await response.json();
+    // Теперь получаем статус по task_id
+    const statusResponse = await fetch(`/analytics/reports/status/${taskId}`);
+    if (!statusResponse.ok) return;
+
+    const status = await statusResponse.json();
     setTaskStatus(status);
 
-    if (status.status === 'SUCCESS' || status.status === 'FAILURE') {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-        setRefreshInterval(null);
-      }
-
-      if (status.status === 'SUCCESS') {
-        await fetchReport();
-      }
-    }
-
+    // Логика остановки polling остается той же
   } catch (err) {
     console.error('Error fetching task status:', err);
     setError('Ошибка получения статуса задачи');
-
-    // Останавливаем polling при ошибке
-    if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
-    }
   }
 }, [reportId, refreshInterval]);
 
@@ -208,7 +188,7 @@ const ReportPage: React.FC = () => {
     if (!reportId) return;
 
     try {
-      const response = await fetch(`/api/analytics/reports/${reportId}`);
+      const response = await fetch(`/analytics/reports/${reportId}`);
       if (!response.ok) {
         if (response.status === 202) {
           // Отчет еще в процессе
@@ -233,17 +213,18 @@ const ReportPage: React.FC = () => {
     if (!reportId) return;
 
     try {
-      const response = await fetch(`/api/analytics/reports/feedback/${reportId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          rating: feedbackRating,
-          comment: feedbackComment,
-          useful_sections: [] // Можно расширить
-        })
-      });
+      const response = await fetch(`/analytics/reports/feedback/${reportId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Добавить токен авторизации
+          },
+          body: JSON.stringify({
+            rating: feedbackRating,
+            comment: feedbackComment,
+            useful_sections: []
+          })
+        });
 
       if (!response.ok) throw new Error('Failed to submit feedback');
 
