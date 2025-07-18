@@ -47,11 +47,6 @@ const ReportPage: React.FC = () => {
   const navigate = useNavigate();
   const [taskStatus, setTaskStatus] = useState<EnhancedTaskStatus | null>(null);
   const [report, setReport] = useState<EnhancedReport | null>(null);
-  useEffect(() => {
-      if (report?.status === 'COMPLETED') {
-        setLoading(false);
-      }
-    }, [report]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
@@ -67,6 +62,25 @@ const ReportPage: React.FC = () => {
     }
   };
 
+  const pollTaskStatus = useCallback(async (taskId: string) => {
+    try {
+      const response = await getReportStatus(taskId);
+      const statusData = response.data;
+      setTaskStatus(statusData);
+
+      if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
+        stopPolling();
+        // **ИСПРАВЛЕНО**: Добавлена задержка в 1 секунду перед финальным запросом
+        // Это дает время базе данных обновить запись после завершения задачи.
+        setTimeout(() => {
+            fetchReport();
+        }, 1000);
+      }
+    } catch (err: any) {
+      console.error('Error polling task status:', err);
+    }
+  }, [fetchReport]);
+
   const fetchReport = useCallback(async () => {
     if (!reportId) return;
 
@@ -74,6 +88,7 @@ const ReportPage: React.FC = () => {
       const response = await getReport(reportId);
       const data = response.data;
       setReport(data);
+      setLoading(false); // FIX: Ensure loader is dismissed on successful fetch
       console.log('>>> DEBUG REPORT', data);
 
       if (data.status === 'COMPLETED') {
@@ -101,26 +116,7 @@ const ReportPage: React.FC = () => {
       setLoading(false);
       stopPolling();
     }
-  }, [reportId]);
-
-  const pollTaskStatus = useCallback(async (taskId: string) => {
-    try {
-      const response = await getReportStatus(taskId);
-      const statusData = response.data;
-      setTaskStatus(statusData);
-
-      if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
-        stopPolling();
-        // **ИСПРАВЛЕНО**: Добавлена задержка в 1 секунду перед финальным запросом
-        // Это дает время базе данных обновить запись после завершения задачи.
-        setTimeout(() => {
-            fetchReport();
-        }, 1000);
-      }
-    } catch (err: any) {
-      console.error('Error polling task status:', err);
-    }
-  }, [fetchReport]);
+  }, [reportId, pollTaskStatus]);
 
   useEffect(() => {
     fetchReport();
