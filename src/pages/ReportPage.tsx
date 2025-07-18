@@ -39,6 +39,7 @@ import {
   Clock
 } from 'lucide-react';
 
+// Interfaces
 interface MLPattern {
   type: string;
   description: string;
@@ -100,31 +101,40 @@ interface DetailedFinding {
   category?: string;
 }
 
+// **ИСПРАВЛЕНО**: Разделены типы для успешных и неуспешных результатов
+interface SuccessResults {
+  executive_summary: string;
+  detailed_findings: DetailedFinding[];
+  recommendations: string[];
+  domain_context: DomainContext;
+  ml_insights: {
+    total_patterns: number;
+    pattern_types: Record<string, MLPattern[]>;
+    high_confidence_patterns: any[];
+  };
+  analysis_stats: AnalysisStats;
+  diversity_report: DiversityReport;
+  adaptive_strategy?: {
+    preferred_question_types: string[];
+    generate_charts: boolean;
+    detailed_data: boolean;
+  };
+  error?: never; // Указывает, что в успешном результате нет поля error
+}
+
+interface ErrorResults {
+  error: string;
+  details?: string;
+  stage?: string;
+}
+
 interface EnhancedReport {
   id: number;
   status: string; // PENDING, PROGRESS, COMPLETED, FAILED
   created_at: string;
   task_id?: string;
-  results: {
-    executive_summary: string;
-    detailed_findings: DetailedFinding[];
-    recommendations: string[];
-    domain_context: DomainContext;
-    ml_insights: {
-      total_patterns: number;
-      pattern_types: Record<string, MLPattern[]>;
-      high_confidence_patterns: any[];
-    };
-    analysis_stats: AnalysisStats;
-    diversity_report: DiversityReport;
-    adaptive_strategy?: {
-      preferred_question_types: string[];
-      generate_charts: boolean;
-      detailed_data: boolean;
-    };
-  };
+  results: SuccessResults | ErrorResults | null;
 }
-
 
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
@@ -137,14 +147,12 @@ const ReportPage: React.FC = () => {
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState('');
 
-  // Используем useRef для хранения ID интервала, чтобы избежать проблем с замыканиями
   const pollingInterval = useRef<number | null>(null);
 
   const getAuthToken = () => {
     return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
   };
 
-  // Функция для остановки опроса
   const stopPolling = () => {
     if (pollingInterval.current) {
       clearInterval(pollingInterval.current);
@@ -152,42 +160,17 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Функция для опроса статуса задачи Celery
-  const pollTaskStatus = useCallback(async (taskId: string) => {
-    try {
-      const token = getAuthToken();
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const statusResponse = await fetch(`/analytics/reports/status/${taskId}`, { headers });
-
-      if (!statusResponse.ok) {
-        // Если запрос статуса не удался, просто попробуем еще раз позже
-        console.error('Failed to fetch task status');
-        return;
-      }
-
-      const statusData: EnhancedTaskStatus = await statusResponse.json();
-      setTaskStatus(statusData);
-
-      // Если задача завершена (успешно или нет), останавливаем опрос и получаем финальный отчет
-      if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
-        stopPolling();
-        fetchReport(); // Получаем финальную версию отчета
-      }
-    } catch (err) {
-      console.error('Error polling task status:', err);
-      setError('Ошибка получения статуса задачи.');
-      stopPolling();
-    }
-  }, [reportId]);
-
-
-  // Основная функция для получения данных отчета
   const fetchReport = useCallback(async () => {
     if (!reportId) return;
 
+    // **ИСПРАВЛЕНО**: Безопасное создание заголовков
+    const headers: HeadersInit = {};
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
-      const token = getAuthToken();
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch(`/analytics/reports/${reportId}`, { headers });
 
       if (!response.ok) {
@@ -195,25 +178,30 @@ const ReportPage: React.FC = () => {
       }
 
       const data: EnhancedReport = await response.json();
+      setReport(data);
 
-      // **ИСПРАВЛЕНО**: Проверяем статус 'COMPLETED', а не 'SUCCESS'
       if (data.status === 'COMPLETED') {
-        setReport(data);
         setLoading(false);
         stopPolling();
-        setTaskStatus(null); // Скрываем блок статуса задачи
+        setTaskStatus(null);
       } else if (data.status === 'FAILED') {
-        setError(data.results?.error || 'Произошла ошибка при генерации отчета.');
-        setReport(data);
+        // **ИСПРАВЛЕНО**: Корректная обработка структуры ошибки
+        if (data.results && 'error' in data.results) {
+          setError(data.results.error);
+        } else {
+          setError('Произошла неизвестная ошибка при генерации отчета.');
+        }
         setLoading(false);
         stopPolling();
       } else {
-        // Если статус PENDING или PROGRESS, начинаем опрос
-        setReport(data); // Показываем предварительные данные если они есть
         setLoading(false);
-        if (data.task_id && !pollingInterval.current) {
-          pollTaskStatus(data.task_id); // Первый вызов немедленно
-          pollingInterval.current = window.setInterval(() => pollTaskStatus(data.task_id), 5000);
+        // **ИСПРАВЛЕНО**: Безопасная передача task_id для начала опроса
+        const taskId = data.task_id;
+        if (taskId && !pollingInterval.current) {
+          pollingInterval.current = window.setInterval(() => {
+            // Внутри интервала мы уверены, что taskId - это строка
+            pollTaskStatus(taskId);
+          }, 5000);
         }
       }
 
@@ -223,32 +211,52 @@ const ReportPage: React.FC = () => {
       setLoading(false);
       stopPolling();
     }
-  }, [reportId, pollTaskStatus]);
+  }, [reportId]);
 
+  const pollTaskStatus = useCallback(async (taskId: string) => {
+    // **ИСПРАВЛЕНО**: Безопасное создание заголовков
+    const headers: HeadersInit = {};
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
-  // Инициализация при монтировании компонента
-  useEffect(() => {
-    fetchReport();
+    try {
+      const statusResponse = await fetch(`/analytics/reports/status/${taskId}`, { headers });
+      if (!statusResponse.ok) return;
+      const statusData: EnhancedTaskStatus = await statusResponse.json();
+      setTaskStatus(statusData);
 
-    // Очищаем интервал при размонтировании
-    return () => {
+      if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
+        stopPolling();
+        fetchReport();
+      }
+    } catch (err) {
+      console.error('Error polling task status:', err);
+      setError('Ошибка получения статуса задачи.');
       stopPolling();
-    };
+    }
   }, [fetchReport]);
 
-  // Отправка обратной связи
+  useEffect(() => {
+    fetchReport();
+    return () => stopPolling();
+  }, [fetchReport]);
+
   const submitFeedback = async () => {
     if (!reportId) return;
 
-    try {
-      const token = getAuthToken();
+    // **ИСПРАВЛЕНО**: Безопасное создание заголовков
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
+    try {
       const response = await fetch(`/analytics/reports/feedback/${reportId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
+        headers,
         body: JSON.stringify({
           rating: feedbackRating,
           comment: feedbackComment,
@@ -261,14 +269,11 @@ const ReportPage: React.FC = () => {
       setShowFeedbackDialog(false);
       setFeedbackComment('');
       setFeedbackRating(5);
-
     } catch (err) {
       console.error('Error submitting feedback:', err);
     }
   };
 
-
-  // Получение иконки для статуса Celery
   const getTaskStatusIcon = (status?: string) => {
     switch (status) {
       case 'SUCCESS': return <CheckCircle className="w-5 h-5 text-green-500" />;
@@ -278,20 +283,11 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  const getPatternColor = (type: string) => {
-    switch (type) {
-      case 'anomaly': return 'bg-red-100 text-red-800';
-      case 'clustering': return 'bg-blue-100 text-blue-800';
-      case 'correlation': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
+  // Функции рендеринга остаются без изменений, но теперь они будут получать корректные данные
   const renderTaskProgress = () => {
-    if (!taskStatus) return null;
-
+    if (!taskStatus || report?.status === 'COMPLETED') return null;
     return (
-      <Card className="mb-6">
+        <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {getTaskStatusIcon(taskStatus.status)}
@@ -343,10 +339,17 @@ const ReportPage: React.FC = () => {
     );
   };
 
-  // ... (остальные функции рендера без изменений)
-  // Рендер executive summary
+  const getPatternColor = (type: string) => {
+    switch (type) {
+      case 'anomaly': return 'bg-red-100 text-red-800';
+      case 'clustering': return 'bg-blue-100 text-blue-800';
+      case 'correlation': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const renderExecutiveSummary = () => {
-    if (!report?.results?.executive_summary) return null;
+    if (!report?.results || 'error' in report.results || !report.results.executive_summary) return null;
 
     return (
       <div className="space-y-6">
@@ -392,9 +395,8 @@ const ReportPage: React.FC = () => {
     );
   };
 
-  // Рендер ML-инсайтов
   const renderMLInsights = () => {
-    if (!report?.results?.ml_insights || report.results.ml_insights.total_patterns === 0) {
+    if (!report?.results || 'error' in report.results || report.results.ml_insights.total_patterns === 0) {
       return (
         <Card>
           <CardContent className="text-center py-8">
@@ -404,7 +406,7 @@ const ReportPage: React.FC = () => {
         </Card>
       );
     }
-
+    const { ml_insights } = report.results;
     return (
       <Card>
         <CardHeader>
@@ -414,16 +416,14 @@ const ReportPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">Обнаружено {report.results.ml_insights.total_patterns} паттернов</p>
-
+          <p className="mb-4">Обнаружено {ml_insights.total_patterns} паттернов</p>
           <div className="space-y-4">
-            {Object.entries(report.results.ml_insights.pattern_types).map(([type, patterns]) => (
+            {Object.entries(ml_insights.pattern_types).map(([type, patterns]) => (
               <div key={type} className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className={getPatternColor(type)}>{type}</Badge>
                   <span className="text-sm text-gray-600">{patterns.length} паттернов</span>
                 </div>
-
                 <div className="space-y-2">
                   {(patterns as MLPattern[]).slice(0, 3).map((pattern, index: number) => (
                     <div key={index} className="bg-gray-50 rounded p-3">
@@ -442,12 +442,9 @@ const ReportPage: React.FC = () => {
     );
   };
 
-  // Рендер контекста домена
   const renderDomainContext = () => {
-    if (!report?.results?.domain_context) return null;
-
+    if (!report?.results || 'error' in report.results || !report.results.domain_context) return null;
     const { domain_context } = report.results;
-
     return (
       <Card>
         <CardHeader>
@@ -465,7 +462,6 @@ const ReportPage: React.FC = () => {
                 (уверенность: {(domain_context.confidence * 100).toFixed(1)}%)
               </span>
             </div>
-
             <div>
               <strong>Ключевые сущности:</strong>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -474,7 +470,6 @@ const ReportPage: React.FC = () => {
                 ))}
               </div>
             </div>
-
             <div>
               <strong>Бизнес-метрики:</strong>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -489,10 +484,8 @@ const ReportPage: React.FC = () => {
     );
   };
 
-  // Рендер детальных результатов
   const renderDetailedFindings = () => {
-    if (!report?.results?.detailed_findings) return null;
-
+    if (!report?.results || 'error' in report.results || !report.results.detailed_findings) return null;
     return (
       <div className="space-y-6">
         {report.results.detailed_findings.map((finding, index) => (
@@ -514,17 +507,11 @@ const ReportPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 mb-4">{finding.summary}</p>
-
               {finding.chart_url && (
                 <div className="mb-4">
-                  <img
-                    src={finding.chart_url}
-                    alt="Диаграмма"
-                    className="max-w-full h-auto rounded border"
-                  />
+                  <img src={finding.chart_url} alt="Диаграмма" className="max-w-full h-auto rounded border"/>
                 </div>
               )}
-
               {finding.ml_patterns && finding.ml_patterns.length > 0 && (
                 <div className="mb-4">
                   <strong>ML-паттерны:</strong>
@@ -533,15 +520,12 @@ const ReportPage: React.FC = () => {
                       <div key={idx} className="bg-gray-50 rounded p-2">
                         <Badge className={getPatternColor(pattern.type)}>{pattern.type}</Badge>
                         <p className="text-sm mt-1">{pattern.description}</p>
-                        <p className="text-xs text-gray-600">
-                          ({(pattern.confidence * 100).toFixed(1)}%)
-                        </p>
+                        <p className="text-xs text-gray-600">({(pattern.confidence * 100).toFixed(1)}%)</p>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
               {finding.data_preview && finding.data_preview.length > 0 && (
                 <div className="mb-4">
                   <strong>Данные ({finding.data_preview.length} записей)</strong>
@@ -549,29 +533,18 @@ const ReportPage: React.FC = () => {
                     <table className="min-w-full border-collapse border border-gray-200">
                       <thead>
                         <tr className="bg-gray-50">
-                          {Object.keys(finding.data_preview[0]).map(key => (
-                            <th key={key} className="border border-gray-200 px-4 py-2 text-left">
-                              {key}
-                            </th>
-                          ))}
+                          {Object.keys(finding.data_preview[0]).map(key => (<th key={key} className="border border-gray-200 px-4 py-2 text-left">{key}</th>))}
                         </tr>
                       </thead>
                       <tbody>
-                        {finding.data_preview.slice(0, 5).map((row, idx) => (
-                          <tr key={idx}>
-                            {Object.values(row).map((val, vidx) => (
-                              <td key={vidx} className="border border-gray-200 px-4 py-2">
-                                {String(val)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
+                        {finding.data_preview.slice(0, 5).map((row, idx) => (<tr key={idx}>
+                            {Object.values(row).map((val, vidx) => (<td key={vidx} className="border border-gray-200 px-4 py-2">{String(val)}</td>))}
+                          </tr>))}
                       </tbody>
                     </table>
                   </div>
                 </div>
               )}
-
               {finding.sql_query && (
                 <div>
                   <strong>SQL запрос</strong>
@@ -587,10 +560,8 @@ const ReportPage: React.FC = () => {
     );
   };
 
-  // Рендер рекомендаций
   const renderRecommendations = () => {
-    if (!report?.results?.recommendations) return null;
-
+    if (!report?.results || 'error' in report.results || !report.results.recommendations) return null;
     return (
       <Card>
         <CardHeader>
@@ -662,11 +633,9 @@ const ReportPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Прогресс задачи (отображается только если задача не завершена) */}
       {renderTaskProgress()}
 
-      {/* Основной контент отчета (отображается, как только появляются данные) */}
-      {report && report.results && (
+      {report && report.results && report.status === 'COMPLETED' && (
         <Tabs defaultValue="summary" className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
             <TabsTrigger value="summary">Резюме</TabsTrigger>
@@ -675,30 +644,14 @@ const ReportPage: React.FC = () => {
             <TabsTrigger value="context">Контекст</TabsTrigger>
             <TabsTrigger value="recommendations">Рекомендации</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="summary" className="mt-6">
-            {renderExecutiveSummary()}
-          </TabsContent>
-
-          <TabsContent value="findings" className="mt-6">
-            {renderDetailedFindings()}
-          </TabsContent>
-
-          <TabsContent value="ml-insights" className="mt-6">
-            {renderMLInsights()}
-          </TabsContent>
-
-          <TabsContent value="context" className="mt-6">
-            {renderDomainContext()}
-          </TabsContent>
-
-          <TabsContent value="recommendations" className="mt-6">
-            {renderRecommendations()}
-          </TabsContent>
+          <TabsContent value="summary" className="mt-6">{renderExecutiveSummary()}</TabsContent>
+          <TabsContent value="findings" className="mt-6">{renderDetailedFindings()}</TabsContent>
+          <TabsContent value="ml-insights" className="mt-6">{renderMLInsights()}</TabsContent>
+          <TabsContent value="context" className="mt-6">{renderDomainContext()}</TabsContent>
+          <TabsContent value="recommendations" className="mt-6">{renderRecommendations()}</TabsContent>
         </Tabs>
       )}
 
-      {/* Диалог обратной связи */}
       <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
         <DialogContent>
           <DialogHeader>
@@ -708,9 +661,7 @@ const ReportPage: React.FC = () => {
             <div>
               <Label htmlFor="rating">Оценка (1-5)</Label>
               <Select value={String(feedbackRating)} onValueChange={(value) => setFeedbackRating(Number(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">1 - Очень плохо</SelectItem>
                   <SelectItem value="2">2 - Плохо</SelectItem>
@@ -720,25 +671,13 @@ const ReportPage: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label htmlFor="comment">Комментарий</Label>
-              <Textarea
-                id="comment"
-                value={feedbackComment}
-                onChange={(e) => setFeedbackComment(e.target.value)}
-                placeholder="Что понравилось или что можно улучшить?"
-                rows={3}
-              />
+              <Textarea id="comment" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder="Что понравилось или что можно улучшить?" rows={3}/>
             </div>
-
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowFeedbackDialog(false)}>
-                Отмена
-              </Button>
-              <Button onClick={submitFeedback}>
-                Отправить
-              </Button>
+              <Button variant="outline" onClick={() => setShowFeedbackDialog(false)}>Отмена</Button>
+              <Button onClick={submitFeedback}>Отправить</Button>
             </div>
           </div>
         </DialogContent>
