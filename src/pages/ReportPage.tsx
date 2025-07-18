@@ -62,66 +62,66 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  const pollTaskStatus = useCallback(async (taskId: string) => {
-    try {
-      const response = await getReportStatus(taskId);
-      const statusData = response.data;
-      setTaskStatus(statusData);
-
-      if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
-        stopPolling();
-        // **ИСПРАВЛЕНО**: Добавлена задержка в 1 секунду перед финальным запросом
-        // Это дает время базе данных обновить запись после завершения задачи.
-        setTimeout(() => {
-            fetchReport();
-        }, 1000);
-      }
-    } catch (err: any) {
-      console.error('Error polling task status:', err);
-    }
-  }, [fetchReport]);
-
-  const fetchReport = useCallback(async () => {
+  const fetchReport = useCallback(async (isInitialFetch = false) => {
     if (!reportId) return;
+
+    if (isInitialFetch) {
+        setLoading(true);
+    }
 
     try {
       const response = await getReport(reportId);
       const data = response.data;
       setReport(data);
-      setLoading(false); // FIX: Ensure loader is dismissed on successful fetch
-      console.log('>>> DEBUG REPORT', data);
 
-      if (data.status === 'COMPLETED') {
-        stopPolling();
-        setTaskStatus(null);
-      } else if (data.status === 'FAILED') {
+      if (data.status === 'FAILED') {
         if (data.results && 'error' in data.results) {
           setError(data.results.error || 'Произошла ошибка при генерации отчета.');
         } else {
           setError('Произошла неизвестная ошибка при генерации отчета.');
         }
         stopPolling();
-      } else {
-        const taskId = data.task_id;
-        if (taskId && !pollingInterval.current) {
-          pollingInterval.current = window.setInterval(() => {
-            pollTaskStatus(taskId);
-          }, 5000);
-        }
       }
+      return data;
     } catch (err: any) {
       console.error(err);
       const message = err.response?.data?.detail || err.message || 'Произошла неизвестная ошибка';
       setError(message);
-      setLoading(false);
       stopPolling();
+    } finally {
+        if (isInitialFetch) {
+            setLoading(false);
+        }
     }
-  }, [reportId, pollTaskStatus]);
+  }, [reportId]);
 
   useEffect(() => {
-    fetchReport();
+    const pollTaskStatus = async (taskId: string) => {
+      try {
+        const statusResponse = await getReportStatus(taskId);
+        const statusData = statusResponse.data;
+        setTaskStatus(statusData);
+
+        if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
+          stopPolling();
+          setTimeout(() => fetchReport(), 1000); // Fetch final report data
+        }
+      } catch (err) {
+        console.error('Error polling task status:', err);
+      }
+    };
+
+    fetchReport(true).then(initialReport => {
+      if (initialReport && initialReport.status !== 'COMPLETED' && initialReport.status !== 'FAILED') {
+        const taskId = initialReport.task_id;
+        if (taskId && !pollingInterval.current) {
+          pollingInterval.current = window.setInterval(() => pollTaskStatus(taskId), 5000);
+        }
+      }
+    });
+
     return () => stopPolling();
-  }, [fetchReport]);
+  }, [reportId, fetchReport]);
 
   const submitFeedback = async () => {
     if (!reportId) return;
@@ -149,8 +149,6 @@ const ReportPage: React.FC = () => {
       default: return <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />;
     }
   };
-
-  // Остальная часть компонента (функции рендеринга и JSX) остается без изменений
 
   const renderTaskProgress = () => {
     if (!taskStatus || report?.status === 'COMPLETED') return null;
