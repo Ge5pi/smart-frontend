@@ -96,11 +96,11 @@ interface ErrorResults {
 }
 
 export interface EnhancedReport {
-  id: number;
-  status: string;
-  created_at: string;
-  task_id?: string;
-  results: SuccessResults | ErrorResults | null;
+    id: number;
+    status: string;
+    created_at: string;
+    task_id?: string;
+    results: SuccessResults | ErrorResults | null;
 }
 
 export interface EnhancedTaskStatus {
