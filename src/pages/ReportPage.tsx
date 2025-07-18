@@ -1,6 +1,4 @@
-// ReportPage.tsx
-
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -20,33 +18,26 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
   Textarea,
-  Input,
   Label
-} from '@/components/ui';
+} from '../components/ui';
+
 import {
   RefreshCw,
   ArrowLeft,
-  Download,
-  Share2,
   Star,
   TrendingUp,
-  Database,
   Brain,
   Target,
   AlertTriangle,
   CheckCircle,
   XCircle,
   Clock,
-  BarChart3,
-  PieChart,
-  LineChart,
   Zap
 } from 'lucide-react';
 
@@ -146,7 +137,7 @@ const ReportPage: React.FC = () => {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState('');
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
 
   // Функция для получения статуса задачи
   const fetchTaskStatus = useCallback(async () => {
@@ -711,7 +702,7 @@ const ReportPage: React.FC = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="rating">Оценка (1-5)</Label>
-              <Select value={feedbackRating.toString()} onValueChange={(value) => setFeedbackRating(Number(value))}>
+              <Select value={feedbackRating.toString()} onValueChange={(value: string) => setFeedbackRating(Number(value))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -730,7 +721,7 @@ const ReportPage: React.FC = () => {
               <Textarea
                 id="comment"
                 value={feedbackComment}
-                onChange={(e) => setFeedbackComment(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFeedbackComment(e.target.value)}
                 placeholder="Что понравилось или что можно улучшить?"
                 rows={3}
               />
