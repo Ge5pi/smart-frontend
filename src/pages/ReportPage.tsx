@@ -47,6 +47,11 @@ const ReportPage: React.FC = () => {
   const navigate = useNavigate();
   const [taskStatus, setTaskStatus] = useState<EnhancedTaskStatus | null>(null);
   const [report, setReport] = useState<EnhancedReport | null>(null);
+  useEffect(() => {
+      if (report?.status === 'COMPLETED') {
+        setLoading(false);
+      }
+    }, [report]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
@@ -71,7 +76,6 @@ const ReportPage: React.FC = () => {
       setReport(data);
 
       if (data.status === 'COMPLETED') {
-        setLoading(false);
         stopPolling();
         setTaskStatus(null);
       } else if (data.status === 'FAILED') {
@@ -80,10 +84,8 @@ const ReportPage: React.FC = () => {
         } else {
           setError('Произошла неизвестная ошибка при генерации отчета.');
         }
-        setLoading(false);
         stopPolling();
       } else {
-        setLoading(false);
         const taskId = data.task_id;
         if (taskId && !pollingInterval.current) {
           pollingInterval.current = window.setInterval(() => {
