@@ -38,7 +38,6 @@ import {
   XCircle,
   Clock
 } from 'lucide-react';
-// **ИСПРАВЛЕНО**: Разделяем импорт типов и значений
 import { getReport, getReportStatus, submitReportFeedback } from '../api';
 import type { EnhancedReport, EnhancedTaskStatus } from '../api';
 
@@ -109,7 +108,11 @@ const ReportPage: React.FC = () => {
 
       if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
         stopPolling();
-        fetchReport();
+        // **ИСПРАВЛЕНО**: Добавлена задержка в 1 секунду перед финальным запросом
+        // Это дает время базе данных обновить запись после завершения задачи.
+        setTimeout(() => {
+            fetchReport();
+        }, 1000);
       }
     } catch (err: any) {
       console.error('Error polling task status:', err);
