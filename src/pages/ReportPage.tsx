@@ -247,7 +247,7 @@ const ReportPage: React.FC = () => {
     fetchTaskStatus();
 
     // Устанавливаем интервал обновления для незавершенных задач
-    const interval = setInterval(fetchTaskStatus, 3000);
+    const interval = setInterval(fetchTaskStatus, 5000);
     setRefreshInterval(interval);
 
     return () => {
