@@ -504,22 +504,35 @@ const ReportPage: React.FC = () => {
 
       {renderTaskProgress()}
 
-      {report && report.results && report.status === 'COMPLETED' && (
-        <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-            <TabsTrigger value="summary">Резюме</TabsTrigger>
-            <TabsTrigger value="findings">Результаты</TabsTrigger>
-            <TabsTrigger value="ml-insights">ML-инсайты</TabsTrigger>
-            <TabsTrigger value="context">Контекст</TabsTrigger>
-            <TabsTrigger value="recommendations">Рекомендации</TabsTrigger>
-          </TabsList>
-          <TabsContent value="summary" className="mt-6">{renderExecutiveSummary()}</TabsContent>
-          <TabsContent value="findings" className="mt-6">{renderDetailedFindings()}</TabsContent>
-          <TabsContent value="ml-insights" className="mt-6">{renderMLInsights()}</TabsContent>
-          <TabsContent value="context" className="mt-6">{renderDomainContext()}</TabsContent>
-          <TabsContent value="recommendations" className="mt-6">{renderRecommendations()}</TabsContent>
-        </Tabs>
-      )}
+      {report && report.results && report.status === 'COMPLETED' ? (
+        'detailed_findings' in report.results ? (
+          <Tabs defaultValue="summary" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+              <TabsTrigger value="summary">Резюме</TabsTrigger>
+              <TabsTrigger value="findings">Результаты</TabsTrigger>
+              <TabsTrigger value="ml-insights">ML-инсайты</TabsTrigger>
+              <TabsTrigger value="context">Контекст</TabsTrigger>
+              <TabsTrigger value="recommendations">Рекомендации</TabsTrigger>
+            </TabsList>
+            <TabsContent value="summary" className="mt-6">{renderExecutiveSummary()}</TabsContent>
+            <TabsContent value="findings" className="mt-6">{renderDetailedFindings()}</TabsContent>
+            <TabsContent value="ml-insights" className="mt-6">{renderMLInsights()}</TabsContent>
+            <TabsContent value="context" className="mt-6">{renderDomainContext()}</TabsContent>
+            <TabsContent value="recommendations" className="mt-6">{renderRecommendations()}</TabsContent>
+          </Tabs>
+        ) : (
+          <Card>
+            <CardContent className="text-center py-16">
+              <AlertTriangle className="w-12 h-12 mx-auto text-amber-500 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-800">Отчет не содержит данных</h3>
+              <p className="text-gray-600 mt-2">
+                Анализ завершился, но не удалось сформировать детальные результаты.
+                Это могло произойти из-за ошибки при обработке данных на сервере.
+              </p>
+            </CardContent>
+          </Card>
+        )
+      ) : null}
 
       <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
         <DialogContent>
