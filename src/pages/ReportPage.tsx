@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -102,7 +102,7 @@ interface DetailedFinding {
 
 interface EnhancedReport {
   id: number;
-  status: string;
+  status: string; // PENDING, PROGRESS, COMPLETED, FAILED
   created_at: string;
   task_id?: string;
   results: {
@@ -125,6 +125,7 @@ interface EnhancedReport {
   };
 }
 
+
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
@@ -135,68 +136,105 @@ const ReportPage: React.FC = () => {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(5);
   const [feedbackComment, setFeedbackComment] = useState('');
-  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
 
-  // Получение токена авторизации
+  // Используем useRef для хранения ID интервала, чтобы избежать проблем с замыканиями
+  const pollingInterval = useRef<number | null>(null);
+
   const getAuthToken = () => {
     return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
   };
 
-  // Функция для получения статуса задачи и отчета
-  const fetchTaskStatus = useCallback(async () => {
-    if (!reportId) return;
+  // Функция для остановки опроса
+  const stopPolling = () => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+  };
 
+  // Функция для опроса статуса задачи Celery
+  const pollTaskStatus = useCallback(async (taskId: string) => {
     try {
-      // Сначала получаем отчет чтобы взять task_id
-      const reportResponse = await fetch(`/analytics/reports/${reportId}`);
-      if (!reportResponse.ok) return;
+      const token = getAuthToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const statusResponse = await fetch(`/analytics/reports/status/${taskId}`, { headers });
 
-      const reportData: EnhancedReport = await reportResponse.json();
-
-      // Если отчет готов, устанавливаем его
-      if (reportData.status === 'SUCCESS') {
-        setReport(reportData);
-        setLoading(false);
-        if (refreshInterval) {
-          clearInterval(refreshInterval);
-          setRefreshInterval(null);
-        }
+      if (!statusResponse.ok) {
+        // Если запрос статуса не удался, просто попробуем еще раз позже
+        console.error('Failed to fetch task status');
         return;
       }
 
-      const taskId = reportData.task_id;
-      if (!taskId) return;
+      const statusData: EnhancedTaskStatus = await statusResponse.json();
+      setTaskStatus(statusData);
 
-      // Получаем статус по task_id
-      const statusResponse = await fetch(`/analytics/reports/status/${taskId}`);
-      if (!statusResponse.ok) return;
+      // Если задача завершена (успешно или нет), останавливаем опрос и получаем финальный отчет
+      if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
+        stopPolling();
+        fetchReport(); // Получаем финальную версию отчета
+      }
+    } catch (err) {
+      console.error('Error polling task status:', err);
+      setError('Ошибка получения статуса задачи.');
+      stopPolling();
+    }
+  }, [reportId]);
 
-      const status: EnhancedTaskStatus = await statusResponse.json();
-      setTaskStatus(status);
 
-      // Останавливаем polling если задача завершена
-      if (status.status === 'SUCCESS' || status.status === 'FAILURE') {
-        if (refreshInterval) {
-          clearInterval(refreshInterval);
-          setRefreshInterval(null);
-        }
+  // Основная функция для получения данных отчета
+  const fetchReport = useCallback(async () => {
+    if (!reportId) return;
 
-        // Если задача завершена успешно, получаем финальный отчет
-        if (status.status === 'SUCCESS') {
-          const finalReportResponse = await fetch(`/analytics/reports/${reportId}`);
-          if (finalReportResponse.ok) {
-            const finalReport: EnhancedReport = await finalReportResponse.json();
-            setReport(finalReport);
-            setLoading(false);
-          }
+    try {
+      const token = getAuthToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await fetch(`/analytics/reports/${reportId}`, { headers });
+
+      if (!response.ok) {
+        throw new Error(`Не удалось загрузить отчет. Статус: ${response.status}`);
+      }
+
+      const data: EnhancedReport = await response.json();
+
+      // **ИСПРАВЛЕНО**: Проверяем статус 'COMPLETED', а не 'SUCCESS'
+      if (data.status === 'COMPLETED') {
+        setReport(data);
+        setLoading(false);
+        stopPolling();
+        setTaskStatus(null); // Скрываем блок статуса задачи
+      } else if (data.status === 'FAILED') {
+        setError(data.results?.error || 'Произошла ошибка при генерации отчета.');
+        setReport(data);
+        setLoading(false);
+        stopPolling();
+      } else {
+        // Если статус PENDING или PROGRESS, начинаем опрос
+        setReport(data); // Показываем предварительные данные если они есть
+        setLoading(false);
+        if (data.task_id && !pollingInterval.current) {
+          pollTaskStatus(data.task_id); // Первый вызов немедленно
+          pollingInterval.current = window.setInterval(() => pollTaskStatus(data.task_id), 5000);
         }
       }
 
     } catch (err) {
-      console.error('Error fetching task status:', err);
-      setError('Ошибка получения статуса задачи');
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка');
+      setLoading(false);
+      stopPolling();
     }
-  }, [reportId, refreshInterval]);
+  }, [reportId, pollTaskStatus]);
+
+
+  // Инициализация при монтировании компонента
+  useEffect(() => {
+    fetchReport();
+
+    // Очищаем интервал при размонтировании
+    return () => {
+      stopPolling();
+    };
+  }, [fetchReport]);
 
   // Отправка обратной связи
   const submitFeedback = async () => {
@@ -229,21 +267,9 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Инициализация компонента
-  useEffect(() => {
-    fetchTaskStatus();
 
-    // Устанавливаем интервал обновления для незавершенных задач
-    const interval = setInterval(fetchTaskStatus, 5000);
-    setRefreshInterval(interval);
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [fetchTaskStatus]);
-
-  // Получение иконки для статуса
-  const getStatusIcon = (status: string) => {
+  // Получение иконки для статуса Celery
+  const getTaskStatusIcon = (status?: string) => {
     switch (status) {
       case 'SUCCESS': return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'FAILURE': return <XCircle className="w-5 h-5 text-red-500" />;
@@ -252,7 +278,6 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Получение цвета для типа ML-паттерна
   const getPatternColor = (type: string) => {
     switch (type) {
       case 'anomaly': return 'bg-red-100 text-red-800';
@@ -262,7 +287,6 @@ const ReportPage: React.FC = () => {
     }
   };
 
-  // Рендер прогресса задачи
   const renderTaskProgress = () => {
     if (!taskStatus) return null;
 
@@ -270,7 +294,7 @@ const ReportPage: React.FC = () => {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {getStatusIcon(taskStatus.status)}
+            {getTaskStatusIcon(taskStatus.status)}
             Статус анализа
           </CardTitle>
         </CardHeader>
@@ -279,23 +303,25 @@ const ReportPage: React.FC = () => {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Прогресс</span>
-                <span>{taskStatus.progress_percentage}%</span>
+                <span>{taskStatus.progress_percentage?.toFixed(0) ?? 0}%</span>
               </div>
               <Progress value={taskStatus.progress_percentage} className="w-full" />
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <strong>Этап:</strong> {taskStatus.stage}
+                <strong>Этап:</strong> {taskStatus.stage || 'инициализация'}
               </div>
               <div>
-                <strong>Статус:</strong> {taskStatus.status}
+                <strong>Статус:</strong> {taskStatus.status || 'ожидание'}
               </div>
             </div>
 
-            <div>
-              <strong>Текущее действие:</strong> {taskStatus.progress}
-            </div>
+            {taskStatus.progress && (
+              <div>
+                <strong>Текущее действие:</strong> {taskStatus.progress}
+              </div>
+            )}
 
             {taskStatus.current_question && (
               <Alert>
@@ -306,7 +332,7 @@ const ReportPage: React.FC = () => {
               </Alert>
             )}
 
-            {taskStatus.diversity_report && (
+            {taskStatus.diversity_report && taskStatus.diversity_report.total_tables > 0 && (
               <div className="text-sm">
                 <strong>Покрытие таблиц:</strong> {taskStatus.diversity_report.analyzed_tables}/{taskStatus.diversity_report.total_tables}
               </div>
@@ -317,9 +343,10 @@ const ReportPage: React.FC = () => {
     );
   };
 
+  // ... (остальные функции рендера без изменений)
   // Рендер executive summary
   const renderExecutiveSummary = () => {
-    if (!report?.results) return null;
+    if (!report?.results?.executive_summary) return null;
 
     return (
       <div className="space-y-6">
@@ -354,7 +381,7 @@ const ReportPage: React.FC = () => {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {report.results.analysis_stats.tables_coverage.toFixed(1)}%
+                  {report.results.analysis_stats.tables_coverage?.toFixed(1) ?? '0.0'}%
                 </div>
                 <div className="text-sm text-gray-600">Покрытие</div>
               </div>
@@ -398,7 +425,7 @@ const ReportPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {patterns.slice(0, 3).map((pattern: MLPattern, index: number) => (
+                  {(patterns as MLPattern[]).slice(0, 3).map((pattern, index: number) => (
                     <div key={index} className="bg-gray-50 rounded p-3">
                       <p className="text-sm">{pattern.description}</p>
                       <p className="text-xs text-gray-600 mt-1">
@@ -471,9 +498,9 @@ const ReportPage: React.FC = () => {
         {report.results.detailed_findings.map((finding, index) => (
           <Card key={index}>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{finding.question}</span>
-                <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center justify-between flex-wrap gap-2">
+                <span className='mr-4'>{finding.question}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {finding.confidence_score && (
                     <Badge variant="outline">
                       {(finding.confidence_score * 100).toFixed(0)}% уверенности
@@ -586,8 +613,7 @@ const ReportPage: React.FC = () => {
     );
   };
 
-  // Основной рендер
-  if (loading && !taskStatus) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -601,7 +627,7 @@ const ReportPage: React.FC = () => {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Alert className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="w-4 h-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -620,7 +646,7 @@ const ReportPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowFeedbackDialog(true)}
-            disabled={!report}
+            disabled={!report || report.status !== 'COMPLETED'}
             variant="outline"
           >
             <Star className="w-4 h-4 mr-2" />
@@ -636,13 +662,13 @@ const ReportPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Прогресс задачи */}
-      {taskStatus && taskStatus.status !== 'SUCCESS' && renderTaskProgress()}
+      {/* Прогресс задачи (отображается только если задача не завершена) */}
+      {renderTaskProgress()}
 
-      {/* Основной контент отчета */}
-      {report && (
+      {/* Основной контент отчета (отображается, как только появляются данные) */}
+      {report && report.results && (
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
             <TabsTrigger value="summary">Резюме</TabsTrigger>
             <TabsTrigger value="findings">Результаты</TabsTrigger>
             <TabsTrigger value="ml-insights">ML-инсайты</TabsTrigger>
