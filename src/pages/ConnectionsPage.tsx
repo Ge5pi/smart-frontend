@@ -9,7 +9,6 @@ import {
   Trash2,
   AlertCircle,
   Clock,
-  CheckCircle
 } from 'lucide-react';
 
 interface DatabaseConnection {
