@@ -1,5 +1,5 @@
 // src/pages/ReportPage.tsx - обновленный для GPT отчетов
-import React, { useState, useEffect } from 'react';
+import{ useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   FileText,
@@ -16,7 +16,6 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Info,
   Lightbulb
 } from 'lucide-react';
 import api from '../api';
@@ -87,7 +86,6 @@ const ReportPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'insights' | 'recommendations'>('overview');
-  const [selectedFinding, setSelectedFinding] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchReport = async () => {
