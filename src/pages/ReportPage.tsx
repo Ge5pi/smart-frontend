@@ -68,22 +68,29 @@ const ReportPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'insights' | 'recommendations'>('overview');
 
   useEffect(() => {
-    const fetchReport = async () => {
-      if (!id) return;
+  const fetchReport = async () => {
+    if (!id) return;
 
-      try {
-        setIsLoading(true);
-        const response = await api.get(`/analytics/reports/${id}`);
-        setReport(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.detail || 'Ошибка загрузки отчета');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    try {
+      setIsLoading(true);
+      const response = await api.get(`/analytics/reports/${id}`);
 
-    fetchReport();
-  }, [id]);
+      // Логирование для отладки
+      console.log('Received report:', response.data);
+      console.log('Report status:', response.data.status);
+      console.log('Report results:', response.data.results);
+
+      setReport(response.data);
+    } catch (err: any) {
+      console.error('Error fetching report:', err);
+      setError(err.response?.data?.detail || 'Ошибка загрузки отчета');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchReport();
+}, [id]);
 
   const renderChart = (chartData: any) => {
     if (!chartData) return null;
