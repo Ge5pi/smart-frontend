@@ -1,5 +1,5 @@
 // src/pages/ReportPage.tsx - обновленный для DataFrame отчетов
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   FileText, 
