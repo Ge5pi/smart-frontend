@@ -60,7 +60,7 @@ interface SmartReport {
 }
 
 const ReportPage: React.FC = () => {
-  const { id } = useParams<{ reportId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [report, setReport] = useState<SmartReport | null>(null);
