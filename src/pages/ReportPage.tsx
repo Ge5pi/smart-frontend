@@ -68,32 +68,46 @@ const ReportPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'insights' | 'recommendations'>('overview');
 
   useEffect(() => {
-    const fetchReport = async () => {
-      if (!id) return;
+    // Убедимся, что ID существует
+    if (!id) {
+      setIsLoading(false);
+      setError("ID отчета не найден в URL.");
+      return;
+    }
 
+    // Запускаем интервал для опроса статуса
+    const intervalId = setInterval(async () => {
       try {
+        console.log(`[${new Date().toLocaleTimeString()}] Проверяем статус отчета...`);
         const response = await api.get(`/analytics/reports/${id}`);
         const currentReport = response.data;
 
-        console.log('Fetched report status:', currentReport.status);
-
-        if (currentReport.status === 'PENDING' || currentReport.status === 'PROCESSING') {
-          setTimeout(fetchReport, 3000);
-        } else {
+        // Если отчет готов (COMPLETED) или произошла ошибка (FAILED)
+        if (currentReport.status === 'COMPLETED' || currentReport.status === 'FAILED') {
+          console.log("Получен финальный статус:", currentReport.status);
+          clearInterval(intervalId); // Останавливаем опрос
           setReport(currentReport);
-          setIsLoading(false);
+          setIsLoading(false); // Выключаем загрузчик
+
           if (currentReport.status === 'FAILED') {
             setError(currentReport.results?.error || 'Произошла ошибка при генерации отчета');
           }
         }
+        // Если статус все еще PENDING или PROCESSING, ничего не делаем и ждем следующей проверки
       } catch (err: any) {
-        console.error('Error fetching report:', err);
-        setError(err.response?.data?.detail || 'Ошибка загрузки отчета');
+        console.error("Критическая ошибка при опросе отчета:", err);
+        clearInterval(intervalId); // Останавливаем опрос при ошибке
+        setError(err.response?.data?.detail || 'Не удалось загрузить отчет');
         setIsLoading(false);
       }
+    }, 3000); // Проверяем каждые 3 секунды
+
+    // Функция очистки: будет вызвана, когда пользователь уходит со страницы
+    return () => {
+      console.log("Очистка интервала...");
+      clearInterval(intervalId);
     };
 
-    fetchReport();
   }, [id]);
 
   const renderChart = (chartData: any) => {
