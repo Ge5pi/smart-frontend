@@ -241,7 +241,7 @@ const ReportPage: React.FC = () => {
               <div className="text-2xl">🗂️</div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {report.results?.smart_analysis_stats?.total_memory_mb.toFixed(1)} MB данных
+              {(report.results?.smart_analysis_stats?.total_memory_mb || 0).toFixed(1)} MB данных
             </p>
           </div>
 
