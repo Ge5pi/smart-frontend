@@ -25,7 +25,7 @@ interface SmartFinding {
   predictive_patterns: any[];
   timestamp: string;
   success: boolean;
-  has_smart_insights: boolean; // Опечатка была has_smart_insights, но вы использовали has_gpt_insights
+  has_gpt_insights: boolean; // Опечатка была has_smart_insights, но вы использовали has_gpt_insights
 }
 
 // Данные внутри "results"
