@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react';
+import api from '../api'; // Убедитесь, что путь правильный
 
 interface DatabaseConnection {
   id: number;
@@ -76,20 +77,10 @@ export default function ConnectionsPage() {
 
   const loadConnections = async () => {
     try {
-      const response = await fetch('/analytics/connections/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setConnections(data);
-      } else {
-        setError('Не удалось загрузить подключения');
-      }
-    } catch (err) {
-      setError('Ошибка загрузки подключений');
+      const response = await api.get('/analytics/connections/');
+      setConnections(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Ошибка загрузки подключений');
       console.error('Error loading connections:', err);
     } finally {
       setLoading(false);
@@ -101,26 +92,12 @@ export default function ConnectionsPage() {
     setError('');
 
     try {
-      const response = await fetch('/analytics/connections/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        const newConnection = await response.json();
-        setConnections(prev => [...prev, newConnection]);
-        setShowAddForm(false);
-        setFormData({ nickname: '', db_type: 'postgresql', connection_string: '' });
-      } else {
-        const errorData = await response.json();
-        setError(errorData.detail || 'Ошибка создания подключения');
-      }
-    } catch (err) {
-      setError('Ошибка создания подключения');
+      const response = await api.post('/analytics/connections/', formData);
+      setConnections(prev => [...prev, response.data]);
+      setShowAddForm(false);
+      setFormData({ nickname: '', db_type: 'postgresql', connection_string: '' });
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Ошибка создания подключения');
       console.error('Error creating connection:', err);
     }
   };
@@ -129,28 +106,16 @@ export default function ConnectionsPage() {
     setRunningAnalysis(prev => ({ ...prev, [connectionId]: true }));
     setError('');
 
+    // Примечание: В файле ConnectionsPage.tsx был указан эндпоинт `/generate-dataframe/`,
+    // но в analytics_router.py используется `/generate/`. Используем версию из роутера.
     try {
-      const response = await fetch(`/analytics/reports/generate-dataframe/${connectionId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
-        body: JSON.stringify({
-          analysis_type: analysisType,
-          max_questions: analysisType === 'quick' ? 8 : analysisType === 'comprehensive' ? 25 : 15
-        })
+      const response = await api.post(`/analytics/reports/generate/${connectionId}`, {
+        analysis_type: analysisType
       });
-
-      if (response.ok) {
-        const report = await response.json();
-        navigate(`/report/${report.id}?task_id=${report.task_id}`);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.detail || 'Ошибка запуска анализа');
-      }
-    } catch (err) {
-      setError('Ошибка запуска анализа');
+      const report = response.data;
+      navigate(`/report/${report.id}?task_id=${report.task_id}`);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Ошибка запуска анализа');
       console.error('Error starting analysis:', err);
     } finally {
       setRunningAnalysis(prev => ({ ...prev, [connectionId]: false }));
@@ -160,21 +125,13 @@ export default function ConnectionsPage() {
   const deleteConnection = async (connectionId: number) => {
     if (!confirm('Вы уверены, что хотите удалить это подключение?')) return;
 
+    // Внимание: В файле `analytics_router.py` отсутствует эндпоинт для DELETE /analytics/connections/{id}.
+    // Приведенный ниже код предполагает, что такой эндпоинт будет добавлен.
     try {
-      const response = await fetch(`/analytics/connections/${connectionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-
-      if (response.ok) {
-        setConnections(prev => prev.filter(conn => conn.id !== connectionId));
-      } else {
-        setError('Ошибка удаления подключения');
-      }
-    } catch (err) {
-      setError('Ошибка удаления подключения');
+      await api.delete(`/analytics/connections/${connectionId}`);
+      setConnections(prev => prev.filter(conn => conn.id !== connectionId));
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Ошибка удаления подключения');
       console.error('Error deleting connection:', err);
     }
   };
