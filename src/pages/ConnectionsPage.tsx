@@ -1,4 +1,60 @@
-// src/pages/ConnectionsPage.tsx (продолжение)
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Database, Plus, List, Loader, PlayCircle, Zap, BarChart3 } from 'lucide-react';
+import api from '../api';
+
+// Тип для одного подключения
+type Connection = {
+  id: number;
+  nickname: string;
+  db_type: string;
+};
+
+const ConnectionsPage = () => {
+  const navigate = useNavigate();
+
+  // Состояния
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Состояния для формы
+  const [nickname, setNickname] = useState('');
+  const [dbType, setDbType] = useState('postgresql');
+  const [connectionString, setConnectionString] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Состояния для генерации отчетов
+  const [generatingReports, setGeneratingReports] = useState<Set<number>>(new Set());
+
+  // Загрузка списка подключений при загрузке страницы
+  useEffect(() => {
+    const fetchConnections = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get('/analytics/connections/');
+        setConnections(response.data);
+      } catch (err) {
+        setError('Не удалось загрузить список подключений. Пожалуйста, обновите страницу.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConnections();
+  }, []);
+
+  // Обработчик добавления нового подключения
+  const handleAddConnection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFormError(null);
+
+    try {
+      const response = await api.post('/analytics/connections/', {
+        nickname,
+        db_type: dbType,
         connection_string: connectionString,
       });
 
