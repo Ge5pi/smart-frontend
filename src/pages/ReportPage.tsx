@@ -68,21 +68,20 @@ const ReportPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'insights' | 'recommendations'>('overview');
 
   useEffect(() => {
-    // Убедимся, что ID существует
+    // Если id еще не определился, просто выходим.
+    // React вызовет этот хук снова, как только id появится.
     if (!id) {
-      setIsLoading(false);
-      setError("ID отчета не найден в URL.");
       return;
     }
 
-    // Запускаем интервал для опроса статуса
+    // Если мы дошли до сюда, значит id доступен.
+    // Начинаем опрос.
     const intervalId = setInterval(async () => {
       try {
-        console.log(`[${new Date().toLocaleTimeString()}] Проверяем статус отчета...`);
+        console.log(`[${new Date().toLocaleTimeString()}] Проверяем статус отчета ${id}...`);
         const response = await api.get(`/analytics/reports/${id}`);
         const currentReport = response.data;
 
-        // Если отчет готов (COMPLETED) или произошла ошибка (FAILED)
         if (currentReport.status === 'COMPLETED' || currentReport.status === 'FAILED') {
           console.log("Получен финальный статус:", currentReport.status);
           clearInterval(intervalId); // Останавливаем опрос
@@ -93,18 +92,16 @@ const ReportPage = () => {
             setError(currentReport.results?.error || 'Произошла ошибка при генерации отчета');
           }
         }
-        // Если статус все еще PENDING или PROCESSING, ничего не делаем и ждем следующей проверки
       } catch (err: any) {
-        console.error("Критическая ошибка при опросе отчета:", err);
+        console.error("Ошибка при опросе отчета:", err);
         clearInterval(intervalId); // Останавливаем опрос при ошибке
         setError(err.response?.data?.detail || 'Не удалось загрузить отчет');
         setIsLoading(false);
       }
-    }, 3000); // Проверяем каждые 3 секунды
+    }, 3000);
 
-    // Функция очистки: будет вызвана, когда пользователь уходит со страницы
+    // Функция очистки для предотвращения утечек памяти
     return () => {
-      console.log("Очистка интервала...");
       clearInterval(intervalId);
     };
 
