@@ -1,14 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
-interface SmartGPTInsights {
-  business_insights: string;
-  action_items: string[];
-  risk_assessment: string;
-  opportunities: string[];
-  gpt_confidence: 'low' | 'medium' | 'high';
-  business_context: Record<string, any>;
-}
+import api from '../api';
 
 interface SmartFinding {
   question: string;
@@ -68,7 +60,7 @@ interface SmartReport {
 }
 
 const ReportPage: React.FC = () => {
-  const { reportId } = useParams<{ reportId: string }>();
+  const { id } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
 
   const [report, setReport] = useState<SmartReport | null>(null);
@@ -79,7 +71,7 @@ const ReportPage: React.FC = () => {
   useEffect(() => {
     // Убедимся, что ID существует
     if (!id) {
-      setIsLoading(false);
+      setLoading(false);
       setError("ID отчета не найден в URL.");
       return;
     }
@@ -96,7 +88,7 @@ const ReportPage: React.FC = () => {
           console.log("Получен финальный статус:", currentReport.status);
           clearInterval(intervalId); // Останавливаем опрос
           setReport(currentReport);
-          setIsLoading(false); // Выключаем загрузчик
+          setLoading(false); // Выключаем загрузчик
 
           if (currentReport.status === 'FAILED') {
             setError(currentReport.results?.error || 'Произошла ошибка при генерации отчета');
@@ -107,7 +99,7 @@ const ReportPage: React.FC = () => {
         console.error("Критическая ошибка при опросе отчета:", err);
         clearInterval(intervalId); // Останавливаем опрос при ошибке
         setError(err.response?.data?.detail || 'Не удалось загрузить отчет');
-        setIsLoading(false);
+        setLoading(false);
       }
     }, 3000); // Проверяем каждые 3 секунды
 
@@ -118,28 +110,6 @@ const ReportPage: React.FC = () => {
     };
 
   }, [id]);
-
-  const fetchReport = async (id: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/reports/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Не удалось загрузить отчет');
-      }
-
-      const data = await response.json();
-      setReport(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Произошла ошибка');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getConfidenceIcon = (confidence: string) => {
     switch (confidence) {
