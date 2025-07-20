@@ -185,7 +185,7 @@ const ReportPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">SmartGPT Анализ отчет</h1>
             <p className="text-gray-600 mt-1">
               {report.results?.report_metadata?.analysis_engine || 'SmartGPTAnalyzer'} •
-              {new Date(report.results?.report_metadata?.created_at).toLocaleDateString('ru-RU')}
+              {report.results?.report_metadata?.created_at ? new Date(report.results.report_metadata.created_at).toLocaleDateString('ru-RU') : ''}
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -193,7 +193,7 @@ const ReportPage: React.FC = () => {
               🤖 SmartGPT
             </span>
             <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-              v{report.result?.report_metadata?.report_version}
+              v{report.results?.report_metadata?.report_version}
             </span>
           </div>
         </div>
