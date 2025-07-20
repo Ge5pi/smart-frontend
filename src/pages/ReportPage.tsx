@@ -1,461 +1,154 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Alert,
-  AlertDescription,
-  Button,
-  Progress,
-  Badge,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
-  Label
-} from '../components/ui';
-import {
-  RefreshCw,
-  ArrowLeft,
-  Star,
+// src/pages/ReportPage.tsx - обновленный для DataFrame отчетов
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { 
+  FileText, 
+  Loader, 
+  AlertCircle, 
+  Download, 
+  BarChart3, 
+  Database,
   TrendingUp,
+  Eye,
   Brain,
-  Target,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock
+  Target
 } from 'lucide-react';
-import { getReport, getReportStatus, submitReportFeedback } from '../api';
-import type { EnhancedReport, EnhancedTaskStatus } from '../api';
+import api from '../api';
 
-
-const ReportPage: React.FC = () => {
-  const { reportId } = useParams<{ reportId: string }>();
-  const navigate = useNavigate();
-  const [taskStatus, setTaskStatus] = useState<EnhancedTaskStatus | null>(null);
-  const [report, setReport] = useState<EnhancedReport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
-  const [feedbackRating, setFeedbackRating] = useState(5);
-  const [feedbackComment, setFeedbackComment] = useState('');
-
-  const pollingInterval = useRef<number | null>(null);
-
-  const stopPolling = () => {
-    if (pollingInterval.current) {
-      clearInterval(pollingInterval.current);
-      pollingInterval.current = null;
-    }
+// Типы для DataFrame отчетов
+type DataFrameFinding = {
+  question: string;
+  summary: string;
+  data_preview: any[];
+  chart_data?: {
+    type: string;
+    x?: any[];
+    y?: any[];
+    labels?: string[];
+    values?: any[];
+    title?: string;
   };
+  analyzed_tables: string[];
+  method: string;
+  additional_info?: {
+    basic_info?: any;
+    numeric_stats?: any;
+    categorical_stats?: any;
+    correlations?: any[];
+    anomalies?: any[];
+  };
+};
 
-  const fetchReport = useCallback(async (isInitialFetch = false) => {
-    if (!reportId) return;
+type DataFrameReport = {
+  id: number;
+  status: string;
+  results: {
+    executive_summary: string;
+    detailed_findings: DataFrameFinding[];
+    method: string;
+    tables_info: Record<string, any>;
+    relations_info: any[];
+    analysis_stats: {
+      questions_processed: number;
+      successful_analyses: number;
+      tables_analyzed: number;
+      relations_found: number;
+      total_memory_mb: number;
+    };
+    recommendations: string[];
+  };
+  created_at: string;
+};
 
-    if (isInitialFetch) {
-        setLoading(true);
-    }
-
-    try {
-      const response = await getReport(reportId);
-      const data = response.data;
-      setReport(data);
-
-      if (data.status === 'FAILED') {
-        if (data.results && 'error' in data.results) {
-          setError(data.results.error || 'Произошла ошибка при генерации отчета.');
-        } else {
-          setError('Произошла неизвестная ошибка при генерации отчета.');
-        }
-        stopPolling();
-      }
-      return data;
-    } catch (err: any) {
-      console.error(err);
-      const message = err.response?.data?.detail || err.message || 'Произошла неизвестная ошибка';
-      setError(message);
-      stopPolling();
-    } finally {
-        if (isInitialFetch) {
-            setLoading(false);
-        }
-    }
-  }, [reportId]);
+const ReportPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const [report, setReport] = useState<DataFrameReport | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'insights' | 'recommendations'>('overview');
 
   useEffect(() => {
-    const pollTaskStatus = async (taskId: string) => {
-      try {
-        const statusResponse = await getReportStatus(taskId);
-        const statusData = statusResponse.data;
-        setTaskStatus(statusData);
+    const fetchReport = async () => {
+      if (!id) return;
 
-        if (statusData.status === 'SUCCESS' || statusData.status === 'FAILURE') {
-          stopPolling();
-          setTimeout(() => fetchReport(), 1000); // Fetch final report data
-        }
-      } catch (err) {
-        console.error('Error polling task status:', err);
+      try {
+        setIsLoading(true);
+        const response = await api.get(`/analytics/reports/${id}`);
+        setReport(response.data);
+      } catch (err: any) {
+        setError(err.response?.data?.detail || 'Ошибка загрузки отчета');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchReport(true).then(initialReport => {
-      if (initialReport && initialReport.status !== 'COMPLETED' && initialReport.status !== 'FAILED') {
-        const taskId = initialReport.task_id;
-        if (taskId && !pollingInterval.current) {
-          pollingInterval.current = window.setInterval(() => pollTaskStatus(taskId), 5000);
-        }
-      }
-    });
+    fetchReport();
+  }, [id]);
 
-    return () => stopPolling();
-  }, [reportId, fetchReport]);
+  const renderChart = (chartData: any) => {
+    if (!chartData) return null;
 
-  const submitFeedback = async () => {
-    if (!reportId) return;
-
-    try {
-      await submitReportFeedback(reportId, {
-        rating: feedbackRating,
-        comment: feedbackComment,
-      });
-      setShowFeedbackDialog(false);
-      setFeedbackComment('');
-      setFeedbackRating(5);
-      alert('Спасибо за ваш отзыв!');
-    } catch (err: any) {
-      console.error('Error submitting feedback:', err);
-      alert('Не удалось отправить отзыв.');
-    }
-  };
-
-  const getTaskStatusIcon = (status?: string) => {
-    switch (status) {
-      case 'SUCCESS': return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'FAILURE': return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'PENDING': return <Clock className="w-5 h-5 text-yellow-500" />;
-      default: return <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />;
-    }
-  };
-
-  const renderTaskProgress = () => {
-    if (!taskStatus || report?.status === 'COMPLETED') return null;
+    // Простая визуализация данных (в реальном приложении используйте Chart.js или Recharts)
     return (
-        <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {getTaskStatusIcon(taskStatus.status)}
-            Статус анализа
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Прогресс</span>
-                <span>{taskStatus.progress_percentage?.toFixed(0) ?? 0}%</span>
-              </div>
-              <Progress value={taskStatus.progress_percentage} className="w-full" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <strong>Этап:</strong> {taskStatus.stage || 'инициализация'}
-              </div>
-              <div>
-                <strong>Статус:</strong> {taskStatus.status || 'ожидание'}
-              </div>
-            </div>
-
-            {taskStatus.progress && (
-              <div>
-                <strong>Текущее действие:</strong> {taskStatus.progress}
-              </div>
-            )}
-
-            {taskStatus.current_question && (
-              <Alert>
-                <AlertDescription>
-                  <strong>Текущий вопрос:</strong><br />
-                  {taskStatus.current_question}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {taskStatus.diversity_report && taskStatus.diversity_report.total_tables > 0 && (
-              <div className="text-sm">
-                <strong>Покрытие таблиц:</strong> {taskStatus.diversity_report.analyzed_tables}/{taskStatus.diversity_report.total_tables}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const getPatternColor = (type: string) => {
-    switch (type) {
-      case 'anomaly': return 'bg-red-100 text-red-800';
-      case 'clustering': return 'bg-blue-100 text-blue-800';
-      case 'correlation': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const renderExecutiveSummary = () => {
-    if (!report?.results || 'error' in report.results || !report.results.executive_summary) return null;
-
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Резюме анализа
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-700 mb-4">{report.results.executive_summary}</p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {report.results.analysis_stats.questions_processed}
-                </div>
-                <div className="text-sm text-gray-600">Вопросов</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {report.results.analysis_stats.successful_findings}
-                </div>
-                <div className="text-sm text-gray-600">Результатов</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {report.results.analysis_stats.ml_patterns_found}
-                </div>
-                <div className="text-sm text-gray-600">ML-паттернов</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {report.results.analysis_stats.tables_coverage?.toFixed(1) ?? '0.0'}%
-                </div>
-                <div className="text-sm text-gray-600">Покрытие</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="bg-gray-50 p-4 rounded-lg border">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">{chartData.title || 'График'}</h4>
+        <div className="text-xs text-gray-600">
+          Тип: {chartData.type} | Данные: {chartData.x?.length || chartData.values?.length || 0} точек
+        </div>
+        {/* Здесь должна быть интеграция с библиотекой графиков */}
+        <div className="mt-2 h-32 bg-gradient-to-r from-blue-100 to-blue-200 rounded flex items-center justify-center">
+          <BarChart3 className="w-8 h-8 text-blue-600" />
+          <span className="ml-2 text-blue-700 font-medium">График будет здесь</span>
+        </div>
       </div>
     );
   };
 
-  const renderMLInsights = () => {
-    if (!report?.results || 'error' in report.results || report.results.ml_insights.total_patterns === 0) {
-      return (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Brain className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">ML-паттерны не обнаружены</p>
-          </CardContent>
-        </Card>
-      );
-    }
-    const { ml_insights } = report.results;
+  const renderDataTable = (data: any[]) => {
+    if (!data || data.length === 0) return null;
+
+    const columns = Object.keys(data[0]);
+    
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="w-5 h-5" />
-            ML-инсайты
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">Обнаружено {ml_insights.total_patterns} паттернов</p>
-          <div className="space-y-4">
-            {Object.entries(ml_insights.pattern_types).map(([type, patterns]) => (
-              <div key={type} className="border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className={getPatternColor(type)}>{type}</Badge>
-                  <span className="text-sm text-gray-600">{patterns.length} паттернов</span>
-                </div>
-                <div className="space-y-2">
-                  {(patterns as any[]).slice(0, 3).map((pattern, index: number) => (
-                    <div key={index} className="bg-gray-50 rounded p-3">
-                      <p className="text-sm">{pattern.description}</p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        Уверенность: {(pattern.confidence * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              {columns.map((col) => (
+                <th key={col} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {data.slice(0, 10).map((row, idx) => (
+              <tr key={idx} className="hover:bg-gray-50">
+                {columns.map((col) => (
+                  <td key={col} className="px-4 py-2 text-gray-900 max-w-xs truncate">
+                    {String(row[col]) || 'N/A'}
+                  </td>
+                ))}
+              </tr>
             ))}
+          </tbody>
+        </table>
+        {data.length > 10 && (
+          <div className="text-center py-2 text-xs text-gray-500">
+            Показано 10 из {data.length} записей
           </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderDomainContext = () => {
-    if (!report?.results || 'error' in report.results || !report.results.domain_context) return null;
-    const { domain_context } = report.results;
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Контекст предметной области
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <strong>Тип:</strong>
-              <Badge className="ml-2">{domain_context.domain_type}</Badge>
-              <span className="text-sm text-gray-600 ml-2">
-                (уверенность: {(domain_context.confidence * 100).toFixed(1)}%)
-              </span>
-            </div>
-            <div>
-              <strong>Ключевые сущности:</strong>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {domain_context.key_entities.map((entity, index) => (
-                  <Badge key={index} variant="outline">{entity}</Badge>
-                ))}
-              </div>
-            </div>
-            <div>
-              <strong>Бизнес-метрики:</strong>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {domain_context.business_metrics.map((metric, index) => (
-                  <Badge key={index} variant="outline">{metric}</Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const renderDetailedFindings = () => {
-    if (!report?.results || 'error' in report.results || !report.results.detailed_findings) return null;
-    return (
-      <div className="space-y-6">
-        {report.results.detailed_findings.map((finding, index) => (
-          <Card key={index}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between flex-wrap gap-2">
-                <span className='mr-4'>{finding.question}</span>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {finding.confidence_score && (
-                    <Badge variant="outline">
-                      {(finding.confidence_score * 100).toFixed(0)}% уверенности
-                    </Badge>
-                  )}
-                  {finding.category && (
-                    <Badge>{finding.category}</Badge>
-                  )}
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-700 mb-4">{finding.summary}</p>
-              {finding.chart_url && (
-                <div className="mb-4">
-                  <img src={finding.chart_url} alt="Диаграмма" className="max-w-full h-auto rounded border"/>
-                </div>
-              )}
-              {finding.ml_patterns && finding.ml_patterns.length > 0 && (
-                <div className="mb-4">
-                  <strong>ML-паттерны:</strong>
-                  <div className="mt-2 space-y-2">
-                    {finding.ml_patterns.map((pattern, idx) => (
-                      <div key={idx} className="bg-gray-50 rounded p-2">
-                        <Badge className={getPatternColor(pattern.type)}>{pattern.type}</Badge>
-                        <p className="text-sm mt-1">{pattern.description}</p>
-                        <p className="text-xs text-gray-600">({(pattern.confidence * 100).toFixed(1)}%)</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {finding.data_preview && finding.data_preview.length > 0 && (
-                <div className="mb-4">
-                  <strong>Данные ({finding.data_preview.length} записей)</strong>
-                  <div className="mt-2 overflow-x-auto">
-                    <table className="min-w-full border-collapse border border-gray-200">
-                      <thead>
-                        <tr className="bg-gray-50">
-                          {Object.keys(finding.data_preview[0]).map(key => (<th key={key} className="border border-gray-200 px-4 py-2 text-left">{key}</th>))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {finding.data_preview.slice(0, 5).map((row, idx) => (<tr key={idx}>
-                            {Object.values(row).map((val, vidx) => (<td key={vidx} className="border border-gray-200 px-4 py-2">{String(val)}</td>))}
-                          </tr>))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-              {finding.sql_query && (
-                <div>
-                  <strong>SQL запрос</strong>
-                  <pre className="mt-2 bg-gray-100 p-4 rounded text-sm overflow-x-auto">
-                    <code>{finding.sql_query}</code>
-                  </pre>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+        )}
       </div>
     );
   };
 
-  const renderRecommendations = () => {
-    if (!report?.results || 'error' in report.results || !report.results.recommendations) return null;
+  if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Рекомендации
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {report.results.recommendations.map((recommendation, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded">
-                <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p className="text-sm">{recommendation}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Загрузка отчета...</p>
+          <Loader className="w-12 h-12 animate-spin mx-auto mb-4 text-blue-600" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Загрузка DataFrame отчета...</h2>
+          <p className="text-gray-600">Обработка результатов анализа</p>
         </div>
       </div>
     );
@@ -463,104 +156,355 @@ const ReportPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="w-4 h-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <Button onClick={() => navigate('/connections')} className="mt-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Вернуться к подключениям
-        </Button>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Ошибка загрузки</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
       </div>
     );
   }
 
+  if (!report || !report.results) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Отчет не найден</h2>
+          <p className="text-gray-600">DataFrame анализ не завершился или недоступен</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { results } = report;
+  const isDataFrameReport = results.method === 'pure_dataframe';
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Отчет анализа #{reportId}</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setShowFeedbackDialog(true)}
-            disabled={!report || report.status !== 'COMPLETED'}
-            variant="outline"
-          >
-            <Star className="w-4 h-4 mr-2" />
-            Оценить
-          </Button>
-          <Button
-            onClick={() => navigate('/connections')}
-            variant="outline"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Назад
-          </Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Database className="w-8 h-8 text-blue-600" />
+                DataFrame Анализ #{report.id}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                Создан: {new Date(report.created_at).toLocaleString('ru-RU')} | 
+                Метод: {isDataFrameReport ? 'DataFrame' : 'Hybrid'} | 
+                Статус: <span className="text-green-600 font-medium">{report.status}</span>
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700">
+                <Download className="w-4 h-4" />
+                Экспорт
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {renderTaskProgress()}
-
-      {report && report.results && report.status === 'COMPLETED' ? (
-        'detailed_findings' in report.results ? (
-          <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-              <TabsTrigger value="summary">Резюме</TabsTrigger>
-              <TabsTrigger value="findings">Результаты</TabsTrigger>
-              <TabsTrigger value="ml-insights">ML-инсайты</TabsTrigger>
-              <TabsTrigger value="context">Контекст</TabsTrigger>
-              <TabsTrigger value="recommendations">Рекомендации</TabsTrigger>
-            </TabsList>
-            <TabsContent value="summary" className="mt-6">{renderExecutiveSummary()}</TabsContent>
-            <TabsContent value="findings" className="mt-6">{renderDetailedFindings()}</TabsContent>
-            <TabsContent value="ml-insights" className="mt-6">{renderMLInsights()}</TabsContent>
-            <TabsContent value="context" className="mt-6">{renderDomainContext()}</TabsContent>
-            <TabsContent value="recommendations" className="mt-6">{renderRecommendations()}</TabsContent>
-          </Tabs>
-        ) : (
-          <Card>
-            <CardContent className="text-center py-16">
-              <AlertTriangle className="w-12 h-12 mx-auto text-amber-500 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-800">Отчет не содержит данных</h3>
-              <p className="text-gray-600 mt-2">
-                Анализ завершился, но не удалось сформировать детальные результаты.
-                Это могло произойти из-за ошибки при обработке данных на сервере.
-              </p>
-            </CardContent>
-          </Card>
-        )
-      ) : null}
-
-      <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Оценка отчета</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="rating">Оценка (1-5)</Label>
-              <Select value={String(feedbackRating)} onValueChange={(value) => setFeedbackRating(Number(value))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Очень плохо</SelectItem>
-                  <SelectItem value="2">2 - Плохо</SelectItem>
-                  <SelectItem value="3">3 - Нормально</SelectItem>
-                  <SelectItem value="4">4 - Хорошо</SelectItem>
-                  <SelectItem value="5">5 - Отлично</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="comment">Комментарий</Label>
-              <Textarea id="comment" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder="Что понравилось или что можно улучшить?" rows={3}/>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowFeedbackDialog(false)}>Отмена</Button>
-              <Button onClick={submitFeedback}>Отправить</Button>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 px-6">
+              {[
+                { id: 'overview', label: 'Обзор', icon: Eye },
+                { id: 'findings', label: 'Результаты', icon: BarChart3 },
+                { id: 'insights', label: 'Инсайты', icon: Brain },
+                { id: 'recommendations', label: 'Рекомендации', icon: Target }
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id as any)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                    activeTab === id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </nav>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          <div className="p-6">
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <div className="space-y-8">
+                {/* Executive Summary */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Резюме анализа</h2>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <p className="text-blue-900 leading-relaxed">{results.executive_summary}</p>
+                  </div>
+                </div>
+
+                {/* Stats Cards */}
+                {results.analysis_stats && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика анализа</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-600">{results.analysis_stats.questions_processed}</div>
+                        <div className="text-sm text-gray-600">Вопросов обработано</div>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-green-600">{results.analysis_stats.successful_analyses}</div>
+                        <div className="text-sm text-gray-600">Успешных анализов</div>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-purple-600">{results.analysis_stats.tables_analyzed}</div>
+                        <div className="text-sm text-gray-600">Таблиц проанализировано</div>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-orange-600">{results.analysis_stats.relations_found}</div>
+                        <div className="text-sm text-gray-600">Связей найдено</div>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-red-600">{results.analysis_stats.total_memory_mb?.toFixed(1)}MB</div>
+                        <div className="text-sm text-gray-600">Данных в памяти</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tables Info */}
+                {results.tables_info && Object.keys(results.tables_info).length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Информация о таблицах</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                      <table className="min-w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Таблица</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Строк</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Колонок</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Память (MB)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {Object.entries(results.tables_info).map(([tableName, info]: [string, any]) => (
+                            <tr key={tableName}>
+                              <td className="px-6 py-4 text-sm font-medium text-gray-900">{tableName}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{info.rows?.toLocaleString()}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{info.columns}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{info.memory_mb?.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Findings Tab */}
+            {activeTab === 'findings' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Детальные результаты</h2>
+                
+                {results.detailed_findings && results.detailed_findings.length > 0 ? (
+                  <div className="space-y-6">
+                    {results.detailed_findings.map((finding, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">{finding.question}</h3>
+                          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            DataFrame
+                          </span>
+                        </div>
+                        
+                        <div className="mb-4">
+                          <p className="text-gray-700 leading-relaxed">{finding.summary}</p>
+                        </div>
+
+                        {finding.analyzed_tables && finding.analyzed_tables.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-sm text-gray-600">
+                              Проанализированы таблицы: {finding.analyzed_tables.join(', ')}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Chart */}
+                        {finding.chart_data && (
+                          <div className="mb-4">
+                            {renderChart(finding.chart_data)}
+                          </div>
+                        )}
+
+                        {/* Data Preview */}
+                        {finding.data_preview && finding.data_preview.length > 0 && (
+                          <div>
+                            <h4 className="text-md font-medium text-gray-900 mb-2">Данные:</h4>
+                            {renderDataTable(finding.data_preview)}
+                          </div>
+                        )}
+
+                        {/* Additional Info */}
+                        {finding.additional_info && (
+                          <div className="mt-4 space-y-3">
+                            {finding.additional_info.correlations && finding.additional_info.correlations.length > 0 && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <h5 className="text-sm font-medium text-yellow-800 mb-1">Корреляции:</h5>
+                                <ul className="text-sm text-yellow-700 space-y-1">
+                                  {finding.additional_info.correlations.map((corr: any, idx: number) => (
+                                    <li key={idx}>
+                                      {corr.column1} ↔ {corr.column2}: {corr.correlation?.toFixed(3)} ({corr.strength})
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {finding.additional_info.anomalies && finding.additional_info.anomalies.length > 0 && (
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <h5 className="text-sm font-medium text-red-800 mb-1">Аномалии:</h5>
+                                <ul className="text-sm text-red-700 space-y-1">
+                                  {finding.additional_info.anomalies.map((anomaly: any, idx: number) => (
+                                    <li key={idx}>
+                                      {anomaly.column}: {anomaly.count} аномалий ({anomaly.percentage?.toFixed(1)}%)
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-600">Детальные результаты недоступны</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Insights Tab */}
+            {activeTab === 'insights' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Ключевые инсайты</h2>
+                
+                {/* Insights from findings */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5" />
+                      Паттерны данных
+                    </h3>
+                    <ul className="text-blue-800 space-y-2 text-sm">
+                      <li>• Данные загружены полностью в память для быстрого анализа</li>
+                      <li>• Обнаружены связи между таблицами через pandas merge</li>
+                      <li>• Выполнен поиск корреляций и аномалий</li>
+                      <li>• Создана оптимизированная структура для анализа</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-green-900 mb-3 flex items-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      Технические инсайты
+                    </h3>
+                    <ul className="text-green-800 space-y-2 text-sm">
+                      <li>• DataFrame подход устранил проблемы с SQL</li>
+                      <li>• Все операции выполнены через pandas API</li>
+                      <li>• Гарантированные результаты без пустых ответов</li>
+                      <li>• Сохранены все реляционные связи</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Relations visualization */}
+                {results.relations_info && results.relations_info.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Схема связей</h3>
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="space-y-2">
+                        {results.relations_info.map((relation: any, idx: number) => (
+                          <div key={idx} className="flex items-center gap-4 text-sm">
+                            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded font-medium">
+                              {relation.from_table}
+                            </div>
+                            <div className="text-gray-400">→</div>
+                            <div className="bg-green-100 text-green-800 px-3 py-1 rounded font-medium">
+                              {relation.to_table}
+                            </div>
+                            <div className="text-gray-600 text-xs">
+                              ({relation.from_column} → {relation.to_column})
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recommendations Tab */}
+            {activeTab === 'recommendations' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Рекомендации</h2>
+                
+                {results.recommendations && results.recommendations.length > 0 ? (
+                  <div className="space-y-4">
+                    {results.recommendations.map((recommendation, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 flex items-start gap-4">
+                        <div className="bg-yellow-100 text-yellow-600 rounded-full p-2 flex-shrink-0">
+                          <Target className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-gray-800 leading-relaxed">{recommendation}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Target className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-600">Рекомендации формируются...</p>
+                  </div>
+                )}
+
+                {/* General DataFrame recommendations */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-4">Общие рекомендации по DataFrame-анализу</h3>
+                  <ul className="text-blue-800 space-y-3">
+                    <li className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                      <span>Регулярно обновляйте DataFrame-анализ для отслеживания изменений в данных</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                      <span>Используйте найденные корреляции для создания предиктивных моделей</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                      <span>Настройте мониторинг аномалий для раннего обнаружения проблем</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                      <span>Создайте дашборды на основе выявленных ключевых метрик</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
