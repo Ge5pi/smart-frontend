@@ -183,8 +183,8 @@ const ReportPage: React.FC = () => {
     );
   }
 
-  const smartFindings = report.detailed_findings.filter(f => f.has_smart_insights);
-  const allActionItems = smartFindings.flatMap(f => f.action_items || []);
+  const smartFindings = report.results?.detailed_findings?.filter(f => f.has_smart_insights) || [];
+  const allActionItems = smartFindings.flatMap(f => f.smartgpt_insights?.action_items || []);
   const allOpportunities = smartFindings.flatMap(f => f.opportunities || []);
 
   return (
@@ -195,8 +195,8 @@ const ReportPage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">SmartGPT Анализ отчет</h1>
             <p className="text-gray-600 mt-1">
-              {report.report_metadata?.analysis_engine || 'SmartGPTAnalyzer'} •
-              {new Date(report.report_metadata?.created_at).toLocaleDateString('ru-RU')}
+              {report.results?.report_metadata?.analysis_engine || 'SmartGPTAnalyzer'} •
+              {new Date(report.results?.report_metadata?.created_at).toLocaleDateString('ru-RU')}
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -204,7 +204,7 @@ const ReportPage: React.FC = () => {
               🤖 SmartGPT
             </span>
             <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-              v{report.report_metadata?.report_version}
+              v{report.result?.report_metadata?.report_version}
             </span>
           </div>
         </div>
@@ -216,13 +216,13 @@ const ReportPage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">SmartGPT Инсайты</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {report.smart_analysis_stats.smart_gpt_insights_count}
+                  {report.result?.smart_analysis_stats?.smart_gpt_insights_count}
                 </p>
               </div>
               <div className="text-2xl">🤖</div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Покрытие: {report.smart_analysis_stats.smart_gpt_coverage_percent}%
+              Покрытие: {report.results?.smart_analysis_stats?.smart_gpt_coverage_percent}%
             </p>
           </div>
 
@@ -231,13 +231,13 @@ const ReportPage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Успешные анализы</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {report.smart_analysis_stats.successful_analyses}
+                  {report.results?.smart_analysis_stats?.successful_analyses}
                 </p>
               </div>
               <div className="text-2xl">✅</div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Из {report.smart_analysis_stats.questions_processed} запланированных
+              Из {report.results?.smart_analysis_stats?.questions_processed} запланированных
             </p>
           </div>
 
@@ -246,13 +246,13 @@ const ReportPage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Таблиц проанализировано</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {report.smart_analysis_stats.tables_analyzed}
+                  {report.results?.smart_analysis_stats?.tables_analyzed}
                 </p>
               </div>
               <div className="text-2xl">🗂️</div>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {report.smart_analysis_stats.total_memory_mb.toFixed(1)} MB данных
+              {report.results?.smart_analysis_stats?.total_memory_mb.toFixed(1)} MB данных
             </p>
           </div>
 
@@ -261,7 +261,7 @@ const ReportPage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Связей найдено</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {report.smart_analysis_stats.relations_found}
+                  {report.results?.smart_analysis_stats?.relations_found}
                 </p>
               </div>
               <div className="text-2xl">🔗</div>
@@ -309,20 +309,20 @@ const ReportPage: React.FC = () => {
                 </h2>
                 <div className="prose max-w-none">
                   <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                    {report.executive_summary}
+                    {report.results?.executive_summary}
                   </div>
                 </div>
               </div>
 
               {/* Smart Recommendations */}
-              {report.smart_recommendations && report.smart_recommendations.length > 0 && (
+              {report.results?.smart_recommendations && report.results?.smart_recommendations.length > 0 && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                     <span className="mr-2">💡</span>
                     Умные рекомендации
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {report.smart_recommendations.map((recommendation, index) => (
+                    {report.results?.smart_recommendations.map((recommendation, index) => (
                       <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <p className="text-blue-800 text-sm">{recommendation}</p>
                       </div>
@@ -520,7 +520,7 @@ const ReportPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {Object.entries(report.tables_info || {}).map(([tableName, info]: [string, any]) => (
+                      {Object.entries(report.results?.tables_info || {}).map(([tableName, info]: [string, any]) => (
                         <tr key={tableName}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tableName}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{info.rows?.toLocaleString()}</td>
@@ -539,14 +539,14 @@ const ReportPage: React.FC = () => {
               </div>
 
               {/* Relations Info */}
-              {report.relations_info && report.relations_info.length > 0 && (
+              {report.results?.relations_info && report.results?.relations_info.length > 0 && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                     <span className="mr-2">🔗</span>
                     Связи между таблицами
                   </h2>
                   <div className="space-y-3">
-                    {report.relations_info.map((relation: any, index: number) => (
+                    {report.results?.relations_info.map((relation: any, index: number) => (
                       <div key={index} className="bg-gray-50 rounded-lg p-4">
                         <p className="text-sm text-gray-700">
                           <span className="font-medium">{relation.from_table}</span>
