@@ -1,14 +1,29 @@
-import { useState, useEffect } from 'react';
+// src/pages/ConnectionsPage.tsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Database, Plus, List, Loader, PlayCircle, Zap, BarChart3 } from 'lucide-react';
+import { 
+  Database, 
+  Plus, 
+  List, 
+  Loader, 
+  PlayCircle, 
+  Zap, 
+  BarChart3,
+  Brain,
+  Eye,
+  Clock,
+  Sparkles
+} from 'lucide-react';
 import api from '../api';
 
-// Тип для одного подключения
 type Connection = {
   id: number;
   nickname: string;
   db_type: string;
+  created_at: string;
 };
+
+type AnalysisType = 'quick' | 'standard' | 'comprehensive';
 
 const ConnectionsPage = () => {
   const navigate = useNavigate();
@@ -27,8 +42,10 @@ const ConnectionsPage = () => {
 
   // Состояния для генерации отчетов
   const [generatingReports, setGeneratingReports] = useState<Set<number>>(new Set());
+  const [previewData, setPreviewData] = useState<{[key: number]: any}>({});
+  const [showPreview, setShowPreview] = useState<{[key: number]: boolean}>({});
 
-  // Загрузка списка подключений при загрузке страницы
+  // Загрузка списка подключений
   useEffect(() => {
     const fetchConnections = async () => {
       setIsLoading(true);
@@ -45,7 +62,7 @@ const ConnectionsPage = () => {
     fetchConnections();
   }, []);
 
-  // Обработчик добавления нового подключения
+  // Добавление нового подключения
   const handleAddConnection = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -58,13 +75,10 @@ const ConnectionsPage = () => {
         connection_string: connectionString,
       });
 
-      // Добавляем новое подключение в список
       setConnections(prev => [...prev, response.data]);
-
-      // Очищаем форму
       setNickname('');
       setConnectionString('');
-
+      
       alert('Подключение успешно добавлено!');
     } catch (err: any) {
       setFormError(err.response?.data?.detail || 'Произошла ошибка при добавлении подключения.');
@@ -73,23 +87,26 @@ const ConnectionsPage = () => {
     }
   };
 
-  // Обработчик запуска DataFrame отчета
-  const handleGenerateDataFrameReport = async (connectionId: number, analysisType: string = 'standard') => {
+  // Генерация DataFrame отчета с GPT
+  const handleGenerateDataFrameReport = async (connectionId: number, analysisType: AnalysisType = 'standard') => {
     if (generatingReports.has(connectionId)) {
-      return; // Предотвращаем двойной запуск
+      return;
     }
 
     setGeneratingReports(prev => new Set(prev).add(connectionId));
 
     try {
+      const maxQuestions = analysisType === 'quick' ? 8 : analysisType === 'comprehensive' ? 25 : 15;
+      
       const response = await api.post(`/analytics/reports/generate-dataframe/${connectionId}`, {
-        max_questions: analysisType === 'quick' ? 8 : analysisType === 'comprehensive' ? 25 : 15,
+        max_questions: maxQuestions,
         analysis_type: analysisType
       });
+      
       const { id } = response.data;
       navigate(`/reports/${id}`);
     } catch (err: any) {
-      alert(`Ошибка при запуске DataFrame-анализа: ${err.response?.data?.detail || 'Неизвестная ошибка'}`);
+      alert(`Ошибка при запуске ${analysisType} анализа: ${err.response?.data?.detail || 'Неизвестная ошибка'}`);
     } finally {
       setGeneratingReports(prev => {
         const newSet = new Set(prev);
@@ -99,37 +116,80 @@ const ConnectionsPage = () => {
     }
   };
 
-  // Обработчик preview таблиц
+  // Preview таблиц
   const handlePreviewTables = async (connectionId: number) => {
     try {
-      const response = await api.get(`/analytics/dataframe/preview/${connectionId}?max_rows_per_table=3`);
-      const preview = response.data;
-
-      // Показываем preview в модальном окне
-      const previewText = Object.entries(preview.tables_preview)
-        .map(([tableName, info]: [string, any]) =>
-          `${tableName}: ${info.rows} строк, ${info.columns} колонок`
-        )
-        .join('\n');
-
-      alert(`Preview таблиц:\n${previewText}\n\nВсего найдено ${preview.total_tables_found} таблиц с данными`);
+      setShowPreview(prev => ({...prev, [connectionId]: true}));
+      
+      if (!previewData[connectionId]) {
+        const response = await api.get(`/analytics/dataframe/preview/${connectionId}?max_rows_per_table=3`);
+        setPreviewData(prev => ({...prev, [connectionId]: response.data}));
+      }
     } catch (err: any) {
       alert(`Ошибка получения preview: ${err.response?.data?.detail || 'Неизвестная ошибка'}`);
+      setShowPreview(prev => ({...prev, [connectionId]: false}));
+    }
+  };
+
+  const closePreview = (connectionId: number) => {
+    setShowPreview(prev => ({...prev, [connectionId]: false}));
+  };
+
+  const getAnalysisConfig = (type: AnalysisType) => {
+    switch (type) {
+      case 'quick':
+        return {
+          name: 'Быстрый',
+          icon: Zap,
+          color: 'bg-green-600 hover:bg-green-700',
+          description: '8 вопросов, ~3 мин',
+          features: ['Базовая статистика', 'Основные паттерны', 'GPT инсайты']
+        };
+      case 'comprehensive':
+        return {
+          name: 'Полный',
+          icon: BarChart3,
+          color: 'bg-purple-600 hover:bg-purple-700',
+          description: '25 вопросов, ~15 мин',
+          features: ['Полный анализ', 'ML алгоритмы', 'Расширенные GPT инсайты', 'Прогнозы']
+        };
+      default:
+        return {
+          name: 'Стандартный',
+          icon: PlayCircle,
+          color: 'bg-blue-600 hover:bg-blue-700',
+          description: '15 вопросов, ~7 мин',
+          features: ['Детальная статистика', 'Корреляции', 'GPT анализ', 'Рекомендации']
+        };
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-3 flex items-center justify-center gap-3">
             <Database className="w-10 h-10 text-blue-600" />
-            Подключения к базам данных
+            AI-Powered Analytics Platform
           </h1>
           <p className="text-lg text-gray-600">
-            Управляйте вашими источниками данных и запускайте DataFrame-анализ.
+            Подключайтесь к базам данных и получайте глубокие инсайты с помощью GPT-анализа.
           </p>
+          <div className="mt-4 flex items-center justify-center gap-6 text-sm text-gray-500">
+            <div className="flex items-center gap-1">
+              <Brain className="w-4 h-4 text-purple-600" />
+              <span>GPT-4 Анализ</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Sparkles className="w-4 h-4 text-yellow-600" />
+              <span>DataFrame Оптимизация</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <BarChart3 className="w-4 h-4 text-blue-600" />
+              <span>ML Алгоритмы</span>
+            </div>
+          </div>
         </div>
 
         {/* Форма добавления нового подключения */}
@@ -138,7 +198,7 @@ const ConnectionsPage = () => {
             <Plus className="w-6 h-6" />
             Добавить новое подключение
           </h2>
-
+          
           <form onSubmit={handleAddConnection} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -155,7 +215,7 @@ const ConnectionsPage = () => {
                   required
                 />
               </div>
-
+              
               <div>
                 <label htmlFor="dbType" className="block text-sm font-medium text-gray-700 mb-2">
                   Тип базы данных
@@ -174,7 +234,7 @@ const ConnectionsPage = () => {
                 </select>
               </div>
             </div>
-
+            
             <div>
               <label htmlFor="connectionString" className="block text-sm font-medium text-gray-700 mb-2">
                 Строка подключения
@@ -189,17 +249,17 @@ const ConnectionsPage = () => {
                 required
               />
             </div>
-
+            
             {formError && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
                 {formError}
               </div>
             )}
-
+            
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? <Loader className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
               {isSubmitting ? 'Добавление...' : 'Добавить подключение'}
@@ -207,13 +267,13 @@ const ConnectionsPage = () => {
           </form>
         </div>
 
-        {/* Список существующих подключений */}
+        {/* Список подключений */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
             <List className="w-6 h-6" />
-            Сохраненные подключения ({connections.length})
+            Ваши подключения ({connections.length})
           </h2>
-
+          
           {isLoading ? (
             <div className="text-center py-12">
               <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -228,81 +288,117 @@ const ConnectionsPage = () => {
           ) : connections.length === 0 ? (
             <div className="text-center py-12">
               <Database className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-600 text-lg">У вас пока нет сохраненных подключений.</p>
+              <p className="text-gray-600 text-lg">У вас пока нет подключений.</p>
               <p className="text-gray-500">Добавьте первое подключение выше.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {connections.map(conn => (
-                <div key={conn.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+                <div key={conn.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-200">
+                  {/* Заголовок подключения */}
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">{conn.nickname}</h3>
-                      <p className="text-sm text-gray-600 uppercase tracking-wide">{conn.db_type}</p>
-                    </div>
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  </div>
-
-                  {/* Кнопки управления */}
-                  <div className="space-y-3">
-                    {/* Preview кнопка */}
-                    <button
-                      onClick={() => handlePreviewTables(conn.id)}
-                      className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-700 transition-colors"
-                    >
-                      <Database className="w-4 h-4" />
-                      Preview таблиц
-                    </button>
-
-                    {/* Кнопки DataFrame анализа */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        onClick={() => handleGenerateDataFrameReport(conn.id, 'quick')}
-                        disabled={generatingReports.has(conn.id)}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-green-700 transition-colors disabled:opacity-50"
-                      >
-                        {generatingReports.has(conn.id) ? (
-                          <Loader className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Zap className="w-3 h-3" />
-                        )}
-                        Быстрый
-                      </button>
-
-                      <button
-                        onClick={() => handleGenerateDataFrameReport(conn.id, 'standard')}
-                        disabled={generatingReports.has(conn.id)}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-blue-700 transition-colors disabled:opacity-50"
-                      >
-                        {generatingReports.has(conn.id) ? (
-                          <Loader className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <PlayCircle className="w-3 h-3" />
-                        )}
-                        Стандарт
-                      </button>
-
-                      <button
-                        onClick={() => handleGenerateDataFrameReport(conn.id, 'comprehensive')}
-                        disabled={generatingReports.has(conn.id)}
-                        className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-purple-700 transition-colors disabled:opacity-50"
-                      >
-                        {generatingReports.has(conn.id) ? (
-                          <Loader className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <BarChart3 className="w-3 h-3" />
-                        )}
-                        Полный
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Информационный текст */}
-                  {generatingReports.has(conn.id) && (
-                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-700 text-center">
-                        Создается DataFrame-анализ...
+                      <p className="text-sm text-gray-600 uppercase tracking-wide font-medium">{conn.db_type}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Создано: {new Date(conn.created_at).toLocaleDateString('ru-RU')}
                       </p>
+                    </div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
+                  </div>
+
+                  {/* Preview кнопка */}
+                  <button
+                    onClick={() => handlePreviewTables(conn.id)}
+                    className="w-full mb-4 px-4 py-2 bg-gray-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-700 transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Предпросмотр таблиц
+                  </button>
+
+                  {/* Preview данных */}
+                  {showPreview[conn.id] && previewData[conn.id] && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-blue-900">
+                          Найдено {previewData[conn.id].total_tables_found} таблиц
+                        </h4>
+                        <button
+                          onClick={() => closePreview(conn.id)}
+                          className="text-blue-600 hover:text-blue-800 text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="space-y-1 text-xs text-blue-800">
+                        {Object.entries(previewData[conn.id].tables_preview || {}).slice(0, 3).map(([tableName, info]: [string, any]) => (
+                          <div key={tableName}>
+                            <span className="font-medium">{tableName}:</span> {info.rows} строк, {info.columns} колонок
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Кнопки анализа */}
+                  <div className="space-y-3">
+                    {(['quick', 'standard', 'comprehensive'] as AnalysisType[]).map(type => {
+                      const config = getAnalysisConfig(type);
+                      const Icon = config.icon;
+                      const isGenerating = generatingReports.has(conn.id);
+                      
+                      return (
+                        <div key={type} className="group">
+                          <button
+                            onClick={() => handleGenerateDataFrameReport(conn.id, type)}
+                            disabled={isGenerating}
+                            className={`w-full px-4 py-3 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50 ${config.color}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {isGenerating ? (
+                                  <Loader className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Icon className="w-4 h-4" />
+                                )}
+                                <span>{config.name} анализ</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Brain className="w-3 h-3" />
+                                <Clock className="w-3 h-3" />
+                              </div>
+                            </div>
+                            <div className="text-xs opacity-90 mt-1">
+                              {config.description}
+                            </div>
+                          </button>
+                          
+                          {/* Детали анализа */}
+                          <div className="mt-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <div className="text-xs text-gray-600 space-y-1">
+                              {config.features.map((feature, idx) => (
+                                <div key={idx} className="flex items-center gap-1">
+                                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                  <span>{feature}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Индикатор генерации */}
+                  {generatingReports.has(conn.id) && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-blue-700">
+                        <Loader className="w-4 h-4 animate-spin" />
+                        <span className="text-sm font-medium">Создается AI-анализ...</span>
+                      </div>
+                      <div className="text-xs text-blue-600 mt-1">
+                        GPT обрабатывает ваши данные
+                      </div>
                     </div>
                   )}
                 </div>
@@ -310,31 +406,34 @@ const ConnectionsPage = () => {
             </div>
           )}
         </div>
-
+        
         {/* Информационная панель */}
-        <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">💡 О DataFrame анализе</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
-            <div className="flex items-start gap-2">
-              <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium">Быстрый (8 вопросов)</p>
-                <p className="text-blue-600">Основные метрики и структура</p>
+        <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-200">
+          <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            О нашем AI-анализе
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Zap className="w-6 h-6 text-green-600" />
               </div>
+              <p className="font-medium text-green-900">Быстрый анализ</p>
+              <p className="text-green-700">Мгновенные инсайты и основные паттерны</p>
             </div>
-            <div className="flex items-start gap-2">
-              <PlayCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium">Стандартный (15 вопросов)</p>
-                <p className="text-blue-600">Детальный анализ с паттернами</p>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <PlayCircle className="w-6 h-6 text-blue-600" />
               </div>
+              <p className="font-medium text-blue-900">Стандартный анализ</p>
+              <p className="text-blue-700">Детальный разбор с GPT рекомендациями</p>
             </div>
-            <div className="flex items-start gap-2">
-              <BarChart3 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium">Полный (25 вопросов)</p>
-                <p className="text-blue-600">ML-анализ и все инсайты</p>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <BarChart3 className="w-6 h-6 text-purple-600" />
               </div>
+              <p className="font-medium text-purple-900">Полный анализ</p>
+              <p className="text-purple-700">ML алгоритмы + расширенные GPT инсайты</p>
             </div>
           </div>
         </div>
