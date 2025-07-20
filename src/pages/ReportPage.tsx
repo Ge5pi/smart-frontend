@@ -10,33 +10,31 @@ interface SmartFinding {
   analyzed_tables: string[];
   method: string;
   analysis_type: string;
-
-  // SmartGPT данные
+  smartgpt_insights?: { // Добавлено для согласованности
+    action_items?: string[];
+  };
   business_insights: string;
   action_items: string[];
   risk_assessment: string;
   opportunities: string[];
   gpt_confidence: string;
   business_context: Record<string, any>;
-
-  // Дополнительные данные
   statistical_insights: any[];
   correlations: any[];
   quality_metrics: any[];
   predictive_patterns: any[];
-
   timestamp: string;
   success: boolean;
-  has_smart_insights: boolean;
+  has_smart_insights: boolean; // Опечатка была has_smart_insights, но вы использовали has_gpt_insights
 }
 
-interface SmartReport {
+// Данные внутри "results"
+interface ReportData {
   executive_summary: string;
   detailed_findings: SmartFinding[];
   method: string;
   tables_info: Record<string, any>;
   relations_info: any[];
-
   smart_analysis_stats: {
     questions_processed: number;
     successful_analyses: number;
@@ -48,7 +46,6 @@ interface SmartReport {
     success_rate_percent: number;
     smart_gpt_coverage_percent: number;
   };
-
   memory_usage: Record<string, any>;
   smart_recommendations: string[];
   report_metadata: {
@@ -57,58 +54,55 @@ interface SmartReport {
     smart_gpt_enabled: boolean;
     analysis_engine: string;
   };
+  error?: string;
 }
 
+// Полный ответ от API
+interface ApiReportResponse {
+  id: number;
+  status: 'COMPLETED' | 'FAILED' | 'PENDING';
+  results: ReportData | null;
+}
+
+// КОМПОНЕНТ
 const ReportPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [report, setReport] = useState<SmartReport | null>(null);
+  const [report, setReport] = useState<ApiReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'insights' | 'actions' | 'technical'>('overview');
 
   useEffect(() => {
-    // Убедимся, что ID существует
     if (!id) {
       setLoading(false);
       setError("ID отчета не найден в URL.");
       return;
     }
 
-    // Запускаем интервал для опроса статуса
     const intervalId = setInterval(async () => {
       try {
-        console.log(`[${new Date().toLocaleTimeString()}] Проверяем статус отчета...`);
         const response = await api.get(`/analytics/reports/${id}`);
-        const currentReport = response.data;
+        const currentReport: ApiReportResponse = response.data;
 
-        // Если отчет готов (COMPLETED) или произошла ошибка (FAILED)
         if (currentReport.status === 'COMPLETED' || currentReport.status === 'FAILED') {
-          console.log("Получен финальный статус:", currentReport.status);
-          clearInterval(intervalId); // Останавливаем опрос
+          clearInterval(intervalId);
           setReport(currentReport);
-          setLoading(false); // Выключаем загрузчик
+          setLoading(false);
 
           if (currentReport.status === 'FAILED') {
             setError(currentReport.results?.error || 'Произошла ошибка при генерации отчета');
           }
         }
-        // Если статус все еще PENDING или PROCESSING, ничего не делаем и ждем следующей проверки
       } catch (err: any) {
-        console.error("Критическая ошибка при опросе отчета:", err);
-        clearInterval(intervalId); // Останавливаем опрос при ошибке
+        clearInterval(intervalId);
         setError(err.response?.data?.detail || 'Не удалось загрузить отчет');
         setLoading(false);
       }
-    }, 3000); // Проверяем каждые 3 секунды
+    }, 3000);
 
-    // Функция очистки: будет вызвана, когда пользователь уходит со страницы
-    return () => {
-      console.log("Очистка интервала...");
-      clearInterval(intervalId);
-    };
-
+    return () => clearInterval(intervalId);
   }, [id]);
 
   const getConfidenceIcon = (confidence: string) => {
@@ -122,14 +116,9 @@ const ReportPage: React.FC = () => {
 
   const getAnalysisTypeIcon = (type: string) => {
     const icons: Record<string, string> = {
-      'overview': '🏠',
-      'business_insights': '💼',
-      'data_quality': '🔍',
-      'statistical_insights': '📈',
-      'predictive_analysis': '🔮',
-      'correlation': '🔗',
-      'anomalies': '🚨',
-      'comparison': '⚖️',
+      'overview': '🏠', 'business_insights': '💼', 'data_quality': '🔍',
+      'statistical_insights': '📈', 'predictive_analysis': '🔮',
+      'correlation': '🔗', 'anomalies': '🚨', 'comparison': '⚖️',
       'relationship_analysis': '🌐'
     };
     return icons[type] || '📊';
@@ -216,7 +205,7 @@ const ReportPage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">SmartGPT Инсайты</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {report.result?.smart_analysis_stats?.smart_gpt_insights_count}
+                  {report.results?.smart_analysis_stats?.smart_gpt_insights_count}
                 </p>
               </div>
               <div className="text-2xl">🤖</div>
@@ -303,27 +292,19 @@ const ReportPage: React.FC = () => {
             <>
               {/* Executive Summary */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="mr-2">📊</span>
-                  Executive Summary
-                </h2>
-                <div className="prose max-w-none">
-                  <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                    {report.results?.executive_summary}
-                  </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Executive Summary</h2>
+                <div className="whitespace-pre-wrap text-gray-700">
+                  {report.results?.executive_summary}
                 </div>
               </div>
 
               {/* Smart Recommendations */}
-              {report.results?.smart_recommendations && report.results?.smart_recommendations.length > 0 && (
+              {report.results?.smart_recommendations && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="mr-2">💡</span>
-                    Умные рекомендации
-                  </h2>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Умные рекомендации</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {report.results?.smart_recommendations.map((recommendation, index) => (
-                      <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    {report.results.smart_recommendations.map((recommendation: string, index: number) => (
+                      <div key={index} className="bg-blue-50 p-4 rounded-lg">
                         <p className="text-blue-800 text-sm">{recommendation}</p>
                       </div>
                     ))}
