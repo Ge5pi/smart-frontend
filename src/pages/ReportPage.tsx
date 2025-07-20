@@ -68,29 +68,33 @@ const ReportPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'findings' | 'insights' | 'recommendations'>('overview');
 
   useEffect(() => {
-  const fetchReport = async () => {
-    if (!id) return;
+    const fetchReport = async () => {
+      if (!id) return;
 
-    try {
-      setIsLoading(true);
-      const response = await api.get(`/analytics/reports/${id}`);
+      try {
+        const response = await api.get(`/analytics/reports/${id}`);
+        const currentReport = response.data;
 
-      // Логирование для отладки
-      console.log('Received report:', response.data);
-      console.log('Report status:', response.data.status);
-      console.log('Report results:', response.data.results);
+        console.log('Fetched report status:', currentReport.status);
 
-      setReport(response.data);
-    } catch (err: any) {
-      console.error('Error fetching report:', err);
-      setError(err.response?.data?.detail || 'Ошибка загрузки отчета');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        if (currentReport.status === 'PENDING' || currentReport.status === 'PROCESSING') {
+          setTimeout(fetchReport, 3000);
+        } else {
+          setReport(currentReport);
+          setIsLoading(false);
+          if (currentReport.status === 'FAILED') {
+            setError(currentReport.results?.error || 'Произошла ошибка при генерации отчета');
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching report:', err);
+        setError(err.response?.data?.detail || 'Ошибка загрузки отчета');
+        setIsLoading(false);
+      }
+    };
 
-  fetchReport();
-}, [id]);
+    fetchReport();
+  }, [id]);
 
   const renderChart = (chartData: any) => {
     if (!chartData) return null;
