@@ -172,7 +172,7 @@ const ReportPage: React.FC = () => {
     );
   }
 
-  const smartFindings = report.results?.detailed_findings?.filter(f => f.has_smart_insights) || [];
+  const smartFindings = report.results?.detailed_findings?.filter(f => f.has_gpt_insights) || [];
   const allActionItems = smartFindings.flatMap(f => f.smartgpt_insights?.action_items || []);
   const allOpportunities = smartFindings.flatMap(f => f.opportunities || []);
 
