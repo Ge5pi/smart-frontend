@@ -1,12 +1,12 @@
 // ConnectionsPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { startDatabaseAnalysis } from '../api';  // Импортируем дефолтный api и именованный startDatabaseAnalysis
+import { startDatabaseAnalysis } from '../api';  // Импортируем только нужную функцию (именованный экспорт)
 
 const ConnectionsPage: React.FC = () => {
   const [connectionString, setConnectionString] = useState('');
   const [dbType, setDbType] = useState<'postgres' | 'sqlserver'>('postgres');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);  // Уточнили тип
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -14,12 +14,10 @@ const ConnectionsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // Вызов напрямую, без 'api.' для устранения TS2339 и TS6133
       const response = await startDatabaseAnalysis(connectionString, dbType);
       const reportId = response.data.report_id;
       navigate(`/report/${reportId}`);
     } catch (err: any) {
-      // Обработка ошибки как строки
       const errorMessage = err.response?.data?.detail
         ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
         : 'Произошла ошибка при анализе базы данных.';
