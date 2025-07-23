@@ -41,15 +41,27 @@ const ReportPage: React.FC = () => {
     return <div className="container mx-auto p-6">Отчет не содержит данных.</div>;
   }
 
-  const results = report.results as any; // Используем тип из api.ts [2]
+  // Проверяем, есть ли в отчете ошибка (согласно типам)
+  if ('error' in report.results) {
+      return (
+        <div className="container mx-auto p-6">
+            <h2 className="text-xl font-bold mb-2 text-red-600">Ошибка в отчете</h2>
+            <p>{report.results.error}</p>
+            {report.results.details && <p>Детали: {report.results.details}</p>}
+        </div>
+      );
+  }
 
-  // Функция для рендеринга инсайтов из анализа базы данных
+  // Типизация `results` теперь соответствует `DatabaseAnalysisResults`
+  const results = report.results;
+
+  // Функция для рендеринга инсайтов из анализа базы данных (без изменений, т.к. она соответствует бэкенду)
   const renderDatabaseInsights = () => {
     if (!results.insights || !results.correlations) return null;
     return (
       <div className="mt-6">
         <h2 className="text-xl font-bold mb-2">Анализ базы данных</h2>
-        {Object.entries(results.insights as Record<string, string>).map(([table, insight]) => (
+        {Object.entries(results.insights).map(([table, insight]) => (
           <div key={table} className="mb-4 border rounded p-4">
             <h3 className="text-lg font-semibold">Таблица: {table}</h3>
             <p className="text-gray-700 mb-2">{insight}</p>
@@ -76,59 +88,12 @@ const ReportPage: React.FC = () => {
     );
   };
 
-  // Рендеринг основных результатов отчета (из существующих типов в api.ts)
-  const renderMainReport = () => {
-    if ('error' in results) {
-      return (
-        <div className="mt-6">
-          <h2 className="text-xl font-bold mb-2 text-red-600">Ошибка в отчете</h2>
-          <p>{results.error}</p>
-          {results.details && <p>Детали: {results.details}</p>}
-        </div>
-      );
-    }
-
-    if ('executive_summary' in results) {
-      return (
-        <div className="mt-6">
-          <h2 className="text-xl font-bold mb-2">Краткий обзор</h2>
-          <p>{results.executive_summary}</p>
-
-          <h2 className="text-xl font-bold mt-4 mb-2">Детальные находки</h2>
-          {results.detailed_findings.map((finding: any, index: number) => (
-            <div key={index} className="mb-4 border rounded p-4">
-              <h3 className="text-lg font-semibold">{finding.question}</h3>
-              <p>{finding.summary}</p>
-              {finding.sql_query && <pre className="bg-gray-100 p-2 mt-2">{finding.sql_query}</pre>}
-              {finding.chart_url && <img src={finding.chart_url} alt="График" className="mt-2" />}
-            </div>
-          ))}
-
-          <h2 className="text-xl font-bold mt-4 mb-2">Рекомендации</h2>
-          <ul className="list-disc pl-5">
-            {results.recommendations.map((rec: string, index: number) => (
-              <li key={index}>{rec}</li>
-            ))}
-          </ul>
-
-          {/* Другие разделы из SuccessResults */}
-          <h2 className="text-xl font-bold mt-4 mb-2">Статистика анализа</h2>
-          <p>Обработано вопросов: {results.analysis_stats.questions_processed}</p>
-          <p>Успешных находок: {results.analysis_stats.successful_findings}</p>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Отчет #{report.id}</h1>
       <p className="text-gray-600 mb-4">Статус: {report.status}</p>
       <p className="text-gray-600 mb-4">Создан: {new Date(report.created_at).toLocaleString()}</p>
 
-      {renderMainReport()}
       {renderDatabaseInsights()}
     </div>
   );

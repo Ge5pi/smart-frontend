@@ -18,7 +18,7 @@ const ConnectionsPage: React.FC = () => {
 
     const reportId = response.data.report_id;
 
-    navigate(`/report/${reportId}`);
+    navigate(`/reports/${reportId}`);
 
   } catch (err: any) {
     const errorMessage = err.response?.data?.detail

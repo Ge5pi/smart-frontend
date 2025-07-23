@@ -25,115 +25,34 @@ api.interceptors.request.use(
 );
 
 // --- Типизация данных для ReportPage ---
-// (Остальной код типов без изменений: MLPattern, DomainContext и т.д.)
-interface MLPattern {
-  type: string;
-  description: string;
-  confidence: number;
+
+// Упрощенная структура результатов, соответствующая бэкенду
+interface DatabaseAnalysisResults {
+  insights: Record<string, string>;
+  correlations: Record<string, Record<string, Record<string, number | null>>>;
 }
 
-interface DomainContext {
-  domain_type: string;
-  confidence: number;
-  key_entities: string[];
-  business_metrics: string[];
-}
-
-interface AnalysisStats {
-  questions_processed: number;
-  successful_findings: number;
-  ml_patterns_found: number;
-  tables_coverage: number;
-  tables_analyzed: number;
-}
-
-interface DiversityReport {
-  total_tables: number;
-  analyzed_tables: number;
-  coverage_percentage: number;
-  underanalyzed_tables: string[];
-}
-
-interface DetailedFinding {
-  question: string;
-  summary: string;
-  sql_query: string;
-  chart_url?: string;
-  data_preview?: any[];
-  data_stats?: any;
-  ml_patterns?: MLPattern[];
-  validation?: {
-    is_valid: boolean;
-    message: string;
-  };
-  confidence_score?: number;
-  category?: string;
-}
-
-interface SuccessResults {
-  executive_summary: string;
-  detailed_findings: DetailedFinding[];
-  recommendations: string[];
-  domain_context: DomainContext;
-  ml_insights: {
-    total_patterns: number;
-    pattern_types: Record<string, number>;
-    high_confidence_patterns: any[];
-  };
-  analysis_stats: AnalysisStats;
-  diversity_report: DiversityReport;
-  adaptive_strategy?: {
-    preferred_question_types: string[];
-    generate_charts: boolean;
-    detailed_data: boolean;
-  };
-}
-
+// Тип для ошибки, если бэкенд вернет ее в поле results
+// (хотя текущая реализация бэка так не делает, это хорошая практика)
 interface ErrorResults {
   error: string;
   details?: string;
-  stage?: string;
 }
 
 export interface EnhancedReport {
   id: number;
   status: string;
   created_at: string;
-  task_id?: string;
-  results: SuccessResults | ErrorResults | null;
+  results: DatabaseAnalysisResults | ErrorResults | null;
 }
 
-export interface EnhancedTaskStatus {
-  task_id: string;
-  status: string;
-  progress: string;
-  stage: string;
-  progress_percentage: number;
-  current_question: string;
-  diversity_report: DiversityReport;
-  summary: {
-    questions_processed: number;
-    findings_count: number;
-    ml_patterns_found: number;
-    domain_detected: string;
-  };
-  error?: string;
-}
 
-// --- Функции API для ReportPage ---
+// --- Функции API ---
+
 /** Получение данных отчета по ID */
 export const getReport = (reportId: string) => {
-  return api.get(`/analytics/database/reports/${reportId}`);
-};
-
-/** Получение статуса задачи Celery */
-export const getReportStatus = (taskId: string) => {
-  return api.get(`/analytics/reports/status/${taskId}`);
-};
-
-/** Отправка обратной связи по отчету */
-export const submitReportFeedback = (reportId: string, feedbackData: { rating: number; comment: string }) => {
-  return api.post(`/analytics/reports/feedback/${reportId}`, feedbackData);
+  // Эндпоинт соответствует database_analytics.py
+  return api.get<EnhancedReport>(`/analytics/database/reports/${reportId}`);
 };
 
 /** Запуск анализа базы данных (используем FormData для совместимости с Form на бэкенде) */
@@ -141,6 +60,7 @@ export const startDatabaseAnalysis = (connectionString: string, dbType: 'postgre
   const formData = new FormData();
   formData.append('connectionString', connectionString);
   formData.append('dbType', dbType);
+  // Эндпоинт соответствует database_analytics.py
   return api.post('/analytics/database/analyze', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
