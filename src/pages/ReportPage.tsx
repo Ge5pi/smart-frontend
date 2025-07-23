@@ -29,10 +29,6 @@ const ReportPage: React.FC = () => {
     fetchReport();
   }, [reportId]);
 
-
-    fetchReport();
-  }, [reportId]);
-
   if (loading) {
     return <div className="container mx-auto p-6">Загрузка отчета...</div>;
   }
