@@ -11,21 +11,24 @@ const ConnectionsPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleAnalyze = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await startDatabaseAnalysis(connectionString, dbType);
-      const reportId = response.data.report_id;
-      navigate(`/report/${reportId}`);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.detail
-        ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
-        : 'Произошла ошибка при анализе базы данных.';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  setError(null);
+  try {
+    const response = await startDatabaseAnalysis(connectionString, dbType);
+
+    const reportId = response.data.report_id;
+
+    navigate(`/report/${reportId}`);
+
+  } catch (err: any) {
+    const errorMessage = err.response?.data?.detail
+      ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
+      : 'Произошла ошибка при анализе базы данных.';
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="container mx-auto p-6">
