@@ -1,7 +1,7 @@
 // ConnectionsPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api, { startDatabaseAnalysis } from '../api';  // Импортируем дефолтный api и именованный startDatabaseAnalysis
+import { startDatabaseAnalysis } from '../api';  // Импортируем дефолтный api и именованный startDatabaseAnalysis
 
 const ConnectionsPage: React.FC = () => {
   const [connectionString, setConnectionString] = useState('');
