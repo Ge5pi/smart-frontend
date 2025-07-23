@@ -1,7 +1,7 @@
 // ConnectionsPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from './api'; // Импортируем API-клиент из api.ts [2]
+import api from '../api';
 
 const ConnectionsPage: React.FC = () => {
   const [connectionString, setConnectionString] = useState('');

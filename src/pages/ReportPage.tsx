@@ -1,7 +1,7 @@
 // ReportPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import api, { EnhancedReport } from './api'; // Импортируем api и типы из api.ts [2]
+import api, { EnhancedReport } from '../api';
 
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
