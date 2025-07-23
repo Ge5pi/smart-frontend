@@ -15,8 +15,8 @@ const ConnectionsPage: React.FC = () => {
     setError(null);
     try {
       const response = await api.post('/analytics/database/analyze', {
-        connectionString,
-        dbType,
+        'connectionString': connectionString,
+        'dbType': dbType,
       });
       const reportId = response.data.report_id;
       navigate(`/report/${reportId}`);
