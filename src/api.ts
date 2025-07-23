@@ -138,4 +138,8 @@ export const submitReportFeedback = (reportId: string, feedbackData: { rating: n
 };
 
 
+export const startDatabaseAnalysis = (connectionString: string, dbType: 'postgres' | 'sqlserver') => {
+  return api.post('/analytics/database/analyze', { connectionString, dbType });
+};
+
 export default api;
