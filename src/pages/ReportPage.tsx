@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api, EnhancedReport from '../api';
 
+
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const [report, setReport] = useState<EnhancedReport | null>(null);
