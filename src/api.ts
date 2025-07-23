@@ -1,7 +1,7 @@
+// api.ts
 import axios from 'axios';
 
 // --- Конфигурация экземпляра Axios ---
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 console.log("🚀 VITE_API_URL:", import.meta.env.VITE_API_URL);
 
@@ -25,7 +25,7 @@ api.interceptors.request.use(
 );
 
 // --- Типизация данных для ReportPage ---
-
+// (Остальной код типов без изменений: MLPattern, DomainContext и т.д.)
 interface MLPattern {
   type: string;
   description: string;
@@ -77,7 +77,7 @@ interface SuccessResults {
   domain_context: DomainContext;
   ml_insights: {
     total_patterns: number;
-    pattern_types: Record<string, MLPattern[]>;
+    pattern_types: Record<string, number>;
     high_confidence_patterns: any[];
   };
   analysis_stats: AnalysisStats;
@@ -96,11 +96,11 @@ interface ErrorResults {
 }
 
 export interface EnhancedReport {
-    id: number;
-    status: string;
-    created_at: string;
-    task_id?: string;
-    results: SuccessResults | ErrorResults | null;
+  id: number;
+  status: string;
+  created_at: string;
+  task_id?: string;
+  results: SuccessResults | ErrorResults | null;
 }
 
 export interface EnhancedTaskStatus {
@@ -121,23 +121,22 @@ export interface EnhancedTaskStatus {
 }
 
 // --- Функции API для ReportPage ---
-
 /** Получение данных отчета по ID */
 export const getReport = (reportId: string) => {
-    return api.get<EnhancedReport>(`/analytics/reports/${reportId}`);
+  return api.get(`/analytics/reports/${reportId}`);
 };
 
 /** Получение статуса задачи Celery */
 export const getReportStatus = (taskId: string) => {
-    return api.get<EnhancedTaskStatus>(`/analytics/reports/status/${taskId}`);
+  return api.get(`/analytics/reports/status/${taskId}`);
 };
 
 /** Отправка обратной связи по отчету */
 export const submitReportFeedback = (reportId: string, feedbackData: { rating: number; comment: string }) => {
-    return api.post(`/analytics/reports/feedback/${reportId}`, feedbackData);
+  return api.post(`/analytics/reports/feedback/${reportId}`, feedbackData);
 };
 
-
+/** Запуск анализа базы данных (используем FormData для совместимости с Form на бэкенде) */
 export const startDatabaseAnalysis = (connectionString: string, dbType: 'postgres' | 'sqlserver') => {
   const formData = new FormData();
   formData.append('connectionString', connectionString);

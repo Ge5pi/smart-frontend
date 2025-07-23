@@ -1,7 +1,7 @@
 // ConnectionsPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import api from '../api'; // Импортируем api.ts [2]
 
 const ConnectionsPage: React.FC = () => {
   const [connectionString, setConnectionString] = useState('');
@@ -14,10 +14,11 @@ const ConnectionsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.startDatabaseAnalysis(connectionString, dbType);
+      const response = await api.startDatabaseAnalysis(connectionString, dbType); // Используем обновленную функцию с FormData [2]
       const reportId = response.data.report_id;
       navigate(`/report/${reportId}`);
     } catch (err: any) {
+      // Обработка ошибки как строки для избежания React #31
       const errorMessage = err.response?.data?.detail
         ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
         : 'Произошла ошибка при анализе базы данных.';
