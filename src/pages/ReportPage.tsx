@@ -1,8 +1,6 @@
-// ReportPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import api from '../api';
-import type { EnhancedReport } from '../api';
+import api, { getReport, type EnhancedReport } from '../api';
 
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
@@ -19,7 +17,7 @@ const ReportPage: React.FC = () => {
       }
 
       try {
-        const response = await api.get(`/analytics/reports/${reportId}`);
+        const response = await getReport(reportId);
         setReport(response.data);
       } catch (err: any) {
         setError(err.response?.data?.detail || 'Произошла ошибка при загрузке отчета.');
@@ -27,6 +25,10 @@ const ReportPage: React.FC = () => {
         setLoading(false);
       }
     };
+
+    fetchReport();
+  }, [reportId]);
+
 
     fetchReport();
   }, [reportId]);
