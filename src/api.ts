@@ -123,7 +123,7 @@ export interface EnhancedTaskStatus {
 // --- Функции API для ReportPage ---
 /** Получение данных отчета по ID */
 export const getReport = (reportId: string) => {
-  return api.get(`/analytics/reports/${reportId}`);
+  return api.get(`/analytics/database/reports/${reportId}`);
 };
 
 /** Получение статуса задачи Celery */
