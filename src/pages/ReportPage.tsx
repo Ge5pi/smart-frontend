@@ -1,7 +1,7 @@
 // ReportPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import api, {EnhancedReport} from '../api';
+import api from '../api';
 import type { EnhancedReport } from '../api';
 
 const ReportPage: React.FC = () => {
