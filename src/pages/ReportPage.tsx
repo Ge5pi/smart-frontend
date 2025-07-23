@@ -1,7 +1,7 @@
 // ReportPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import api, { EnhancedReport } from '../api';
+import api, EnhancedReport from '../api';
 
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
@@ -50,7 +50,7 @@ const ReportPage: React.FC = () => {
     return (
       <div className="mt-6">
         <h2 className="text-xl font-bold mb-2">Анализ базы данных</h2>
-        {Object.entries(results.insights).map(([table, insight]: [string, string]) => (
+        {Object.entries(results.insights as Record<string, string>).map(([table, insight]) => (
           <div key={table} className="mb-4 border rounded p-4">
             <h3 className="text-lg font-semibold">Таблица: {table}</h3>
             <p className="text-gray-700 mb-2">{insight}</p>
