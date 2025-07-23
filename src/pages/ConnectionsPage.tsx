@@ -14,14 +14,14 @@ const ConnectionsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.post('/analytics/database/analyze', {
-        'connectionString': connectionString,
-        'dbType': dbType,
-      });
+      const response = await api.startDatabaseAnalysis(connectionString, dbType);
       const reportId = response.data.report_id;
       navigate(`/report/${reportId}`);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Произошла ошибка при анализе базы данных.');
+      const errorMessage = err.response?.data?.detail
+        ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
+        : 'Произошла ошибка при анализе базы данных.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

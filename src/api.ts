@@ -139,7 +139,14 @@ export const submitReportFeedback = (reportId: string, feedbackData: { rating: n
 
 
 export const startDatabaseAnalysis = (connectionString: string, dbType: 'postgres' | 'sqlserver') => {
-  return api.post('/analytics/database/analyze', { connectionString, dbType });
+  const formData = new FormData();
+  formData.append('connectionString', connectionString);
+  formData.append('dbType', dbType);
+  return api.post('/analytics/database/analyze', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 };
 
 export default api;
