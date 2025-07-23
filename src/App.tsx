@@ -26,7 +26,7 @@ function App() {
             <Route path="chat" element={<ChatPage />} />
             <Route path="charts" element={<ChartsPage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
-            <Route path="/report/:id" element={<ReportPage />} />
+            <Route path="/reports/:reportId" element={<ReportPage />} />
           </Route>
         </Route>
 
