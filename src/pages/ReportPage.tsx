@@ -110,28 +110,37 @@ const CorrelationTable: React.FC<{ correlations: CorrelationsForTable }> = ({ co
     );
 };
 
-const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: React.ReactNode }> = ({ title, result, icon }) => (
-    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100 transition-shadow hover:shadow-lg">
-        <h3 className="flex items-center text-xl font-semibold text-gray-800 mb-2">
-            {icon}
-            <span className="font-mono bg-gray-100 px-2 py-1 rounded text-blue-600 ml-2">{title}</span>
-        </h3>
-        <p className="text-gray-700 mb-4 whitespace-pre-wrap">{result.insight}</p>
-        <CorrelationTable correlations={result.correlations || {}} />
-    </div>
-);
-
 /**
- * НОВЫЙ КОМПОНЕНТ: Сворачиваемая секция
+ * ОБНОВЛЕННЫЙ КОМПОНЕНТ: Блок анализа теперь тоже сворачиваемый.
  */
-interface CollapsibleSectionProps {
-    title: string;
-    icon: ReactNode;
-    children: ReactNode;
-    defaultOpen?: boolean;
-}
+const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: React.ReactNode }> = ({ title, result, icon }) => {
+    const [isOpen, setIsOpen] = useState(false); // По умолчанию подсекции свернуты
 
-const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, icon, children, defaultOpen = true }) => {
+    return (
+        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100">
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex justify-between items-center cursor-pointer select-none"
+            >
+                <h3 className="flex items-center text-lg font-semibold text-gray-800">
+                    {icon}
+                    <span className="font-mono bg-gray-100 px-2 py-1 rounded text-blue-600 ml-2">{title}</span>
+                </h3>
+                <ChevronDown
+                    className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                />
+            </div>
+            {isOpen && (
+                <div className="mt-4 pt-4 border-t">
+                    <p className="text-gray-700 mb-4 whitespace-pre-wrap">{result.insight}</p>
+                    <CorrelationTable correlations={result.correlations || {}} />
+                </div>
+            )}
+        </div>
+    );
+};
+
+const CollapsibleSection: React.FC<{ title: string; icon: ReactNode; children: ReactNode; defaultOpen?: boolean; }> = ({ title, icon, children, defaultOpen = true }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
