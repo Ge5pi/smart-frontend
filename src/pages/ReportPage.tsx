@@ -191,7 +191,7 @@ const ReportPage: React.FC = () => {
     if (!report) return <Alert message="Отчет не найден или пуст." type="info" />;
 
     // Проверяем, есть ли валидные результаты в новой структуре
-    if (report.results && ('single_table_insights' in report.results || 'joint_table_insights' in report.results)) {
+    if (report.results && ('single_table_insights' in report.results && 'joint_table_insights' in report.results)) {
         return (
           <>
             <ReportHeader report={report} />
