@@ -24,16 +24,25 @@ api.interceptors.request.use(
   }
 );
 
-// --- Типизация данных для ReportPage ---
+// --- Типизация данных ---
 
-// Упрощенная структура результатов, соответствующая бэкенду
+// Тип для сохраненного подключения к БД
+export interface DatabaseConnection {
+  id: number;
+  user_id: number;
+  connection_string: string;
+  db_type: string;
+  alias: string;
+  created_at: string;
+}
+
+// Упрощенная структура результатов для отчета
 interface DatabaseAnalysisResults {
   insights: Record<string, string>;
   correlations: Record<string, Record<string, Record<string, number | null>>>;
 }
 
-// Тип для ошибки, если бэкенд вернет ее в поле results
-// (хотя текущая реализация бэка так не делает, это хорошая практика)
+// Тип для ошибки в результатах отчета
 interface ErrorResults {
   error: string;
   details?: string;
@@ -47,19 +56,30 @@ export interface EnhancedReport {
 }
 
 
-// --- Функции API ---
+export const getConnections = () => {
+  return api.get<DatabaseConnection[]>('/analytics/database/connections');
+};
 
 /** Получение данных отчета по ID */
 export const getReport = (reportId: string) => {
-  // Эндпоинт соответствует database_analytics.py
   return api.get<EnhancedReport>(`/analytics/database/reports/${reportId}`);
 };
 
-/** Запуск анализа базы данных (используем FormData для совместимости с Form на бэкенде) */
-export const startDatabaseAnalysis = (connectionString: string, dbType: 'postgres' | 'sqlserver') => {
+/**
+ * @param connectionString - Строка подключения к БД.
+ * @param dbType - Тип базы данных.
+ * @param alias - Псевдоним для сохранения подключения.
+ */
+export const startDatabaseAnalysis = (
+    connectionString: string,
+    dbType: 'postgres' | 'sqlserver',
+    alias: string // Добавлен alias
+) => {
   const formData = new FormData();
   formData.append('connectionString', connectionString);
   formData.append('dbType', dbType);
+  formData.append('alias', alias); // Добавлен alias
+
   // Эндпоинт соответствует database_analytics.py
   return api.post('/analytics/database/analyze', formData, {
     headers: {
