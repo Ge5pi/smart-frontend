@@ -3,17 +3,16 @@ import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
 
 // --- Типы ---
-// Предполагаемая структура объекта с данными о корреляции
-interface CorrelationData {
-  with_column: string;
-  coefficient: number;
-}
+// Эта структура соответствует данным, которые возвращает API
+type CorrelationsForTable = Record<string, Record<string, number | null>>;
+type FullCorrelationsObject = Record<string, CorrelationsForTable>;
 
-// Предполагаемая структура результатов, когда нет ошибки
+// Эта структура описывает успешный результат анализа
 interface SuccessReportResults {
     insights: Record<string, string>;
-    correlations: Record<string, Record<string, CorrelationData>>;
+    correlations: FullCorrelationsObject;
 }
+
 
 // --- Кастомный хук для загрузки отчета ---
 /**
@@ -66,7 +65,7 @@ const Alert: React.FC<{ message: string; type: 'error' | 'info' }> = ({ message,
 
   return (
     <div className={`${baseClasses} ${typeClasses[type]}`} role="alert">
-      <p className="font-semibold">{type === 'error' ? 'Ошибка Houston, we have a problem!' : 'Информация'}</p>
+      <p className="font-semibold">{type === 'error' ? 'Ошибка' : 'Информация'}</p>
       <p>{message}</p>
     </div>
   );
@@ -85,33 +84,45 @@ const LoadingSpinner: React.FC = () => (
 /**
  * Компонент для отображения таблицы с данными о корреляции.
  */
-const CorrelationTable: React.FC<{ correlations: Record<string, CorrelationData> }> = ({ correlations }) => {
-  if (!correlations || Object.keys(correlations).length === 0) {
-    return <p className="text-sm text-gray-500 italic mt-2">Нет данных о корреляции.</p>;
-  }
+const CorrelationTable: React.FC<{ correlations: CorrelationsForTable }> = ({ correlations }) => {
+    // Преобразуем вложенную структуру в плоский список для удобного рендеринга
+    const correlationPairs = Object.entries(correlations).flatMap(([columnName, correlationData]) =>
+        Object.entries(correlationData).map(([withColumn, coefficient]) => ({
+            id: `${columnName}-${withColumn}`,
+            columnName,
+            withColumn,
+            coefficient,
+        }))
+    );
 
-  return (
-    <div className="overflow-x-auto mt-4">
-      <table className="min-w-full bg-white border border-gray-200 rounded-md">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Столбец</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Коррелирует с</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Коэффициент</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {Object.entries(correlations).map(([column, data]) => (
-            <tr key={column} className="hover:bg-gray-50 transition-colors duration-150">
-              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{column}</td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{data.with_column}</td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right font-mono">{data.coefficient.toFixed(4)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+    if (correlationPairs.length === 0) {
+        return <p className="text-sm text-gray-500 italic mt-2">Нет данных о корреляции.</p>;
+    }
+
+    return (
+        <div className="overflow-x-auto mt-4">
+            <table className="min-w-full bg-white border border-gray-200 rounded-md">
+                <thead className="bg-gray-50">
+                    <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Столбец</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Коррелирует с</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Коэффициент</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                    {correlationPairs.map(({ id, columnName, withColumn, coefficient }) => (
+                        <tr key={id} className="hover:bg-gray-50 transition-colors duration-150">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{columnName}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{withColumn}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right font-mono">
+                                {coefficient !== null ? coefficient.toFixed(4) : 'N/A'}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
 };
 
 /**
@@ -154,7 +165,6 @@ const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => (
 
 
 // --- Основной компонент страницы ---
-
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const { report, loading, error } = useReport(reportId);
@@ -172,7 +182,6 @@ const ReportPage: React.FC = () => {
       return <Alert message="Отчет не содержит данных для отображения." type="info" />;
     }
 
-    // Проверяем, есть ли в отчете ошибка, которую вернул бэкенд
     if ('error' in report.results) {
         const reportError = report.results.error;
         const errorDetails = report.results.details ? ` Детали: ${report.results.details}` : '';
@@ -183,7 +192,6 @@ const ReportPage: React.FC = () => {
             </>
         );
     }
-
     return (
       <>
         <ReportHeader report={report} />
