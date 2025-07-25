@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
-import { Link, Database, BarChart2 } from 'lucide-react';
+import { Link, Database, BarChart2, ChevronDown } from 'lucide-react';
 
 // --- Типы ---
 type CorrelationsForTable = Record<string, Record<string, number | null>>;
@@ -11,13 +11,12 @@ interface AnalysisResult {
     correlations: CorrelationsForTable;
 }
 
-// Новая структура результатов, соответствующая бэкенду
 interface SuccessReportResults {
     single_table_insights: Record<string, AnalysisResult>;
     joint_table_insights: Record<string, AnalysisResult>;
 }
 
-// --- Кастомный хук для загрузки отчета (без изменений) ---
+// --- Кастомный хук для загрузки отчета ---
 const useReport = (reportId: string | undefined) => {
   const [report, setReport] = useState<EnhancedReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +48,6 @@ const useReport = (reportId: string | undefined) => {
 
 // --- UI Компоненты ---
 const Alert: React.FC<{ message: string; type: 'error' | 'info' }> = ({ message, type }) => {
-  // ... (код компонента без изменений)
   const baseClasses = 'p-4 rounded-lg border';
   const typeClasses = {
     error: 'bg-red-50 border-red-200 text-red-800',
@@ -65,16 +63,13 @@ const Alert: React.FC<{ message: string; type: 'error' | 'info' }> = ({ message,
 };
 
 const LoadingSpinner: React.FC = () => (
-    // ... (код компонента без изменений)
     <div className="flex justify-center items-center py-16">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         <span className="ml-4 text-lg text-gray-600">Загрузка отчета...</span>
     </div>
 );
 
-// Компонент для таблицы корреляций (без изменений)
 const CorrelationTable: React.FC<{ correlations: CorrelationsForTable }> = ({ correlations }) => {
-    // ... (код компонента без изменений)
     const correlationPairs = Object.entries(correlations).flatMap(([columnName, correlationData]) =>
         Object.entries(correlationData).map(([withColumn, coefficient]) => ({
             id: `${columnName}-${withColumn}`,
@@ -114,10 +109,6 @@ const CorrelationTable: React.FC<{ correlations: CorrelationsForTable }> = ({ co
     );
 };
 
-
-/**
- * НОВЫЙ КОМПОНЕНТ: Блок для отображения одного результата анализа (инсайт + корреляции).
- */
 const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: React.ReactNode }> = ({ title, result, icon }) => (
     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100 transition-shadow hover:shadow-lg">
         <h3 className="flex items-center text-xl font-semibold text-gray-800 mb-2">
@@ -130,47 +121,70 @@ const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: Reac
 );
 
 /**
- * ОБНОВЛЕННЫЙ КОМПОНЕНТ: Отображает все результаты анализа.
+ * НОВЫЙ КОМПОНЕНТ: Сворачиваемая секция
  */
+interface CollapsibleSectionProps {
+    title: string;
+    icon: ReactNode;
+    children: ReactNode;
+    defaultOpen?: boolean;
+}
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, icon, children, defaultOpen = true }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <section>
+            <div
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex justify-between items-center cursor-pointer mb-4 pb-2 border-b select-none"
+            >
+                <h2 className="flex items-center text-2xl font-semibold text-gray-800">
+                    {icon}
+                    {title}
+                </h2>
+                <ChevronDown
+                    className={`w-6 h-6 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                />
+            </div>
+            {isOpen && (
+                <div className="space-y-6">
+                    {children}
+                </div>
+            )}
+        </section>
+    );
+};
+
 const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ results }) => {
     const { single_table_insights, joint_table_insights } = results;
 
     return (
         <div className="space-y-12">
-            {/* Секция анализа отдельных таблиц */}
-            <section>
-                <h2 className="flex items-center text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b">
-                    <Database className="w-7 h-7 mr-3 text-blue-600"/>
-                    Анализ по таблицам
-                </h2>
-                <div className="space-y-6">
-                    {Object.entries(single_table_insights).map(([table, result]) => (
-                        <AnalysisCard key={table} title={table} result={result} icon={<BarChart2 className="w-5 h-5 text-gray-500"/>} />
-                    ))}
-                </div>
-            </section>
+            <CollapsibleSection
+                title="Анализ по таблицам"
+                icon={<Database className="w-7 h-7 mr-3 text-blue-600"/>}
+            >
+                {Object.entries(single_table_insights).map(([table, result]) => (
+                    <AnalysisCard key={table} title={table} result={result} icon={<BarChart2 className="w-5 h-5 text-gray-500"/>} />
+                ))}
+            </CollapsibleSection>
 
-            {/* Секция анализа межтабличных связей */}
             {Object.keys(joint_table_insights).length > 0 && (
-                <section>
-                    <h2 className="flex items-center text-2xl font-semibold text-gray-800 mb-4 pb-2 border-b">
-                       <Link className="w-7 h-7 mr-3 text-green-600"/>
-                        Анализ межтабличных связей (JOINs)
-                    </h2>
-                    <div className="space-y-6">
-                        {Object.entries(joint_table_insights).map(([joinKey, result]) => (
-                            <AnalysisCard key={joinKey} title={joinKey} result={result} icon={<Link className="w-5 h-5 text-gray-500"/>} />
-                        ))}
-                    </div>
-                </section>
+                <CollapsibleSection
+                    title="Анализ межтабличных связей (JOINs)"
+                    icon={<Link className="w-7 h-7 mr-3 text-green-600"/>}
+                >
+                    {Object.entries(joint_table_insights).map(([joinKey, result]) => (
+                        <AnalysisCard key={joinKey} title={joinKey} result={result} icon={<Link className="w-5 h-5 text-gray-500"/>} />
+                    ))}
+                </CollapsibleSection>
             )}
         </div>
     );
 };
 
-// Компонент шапки (без изменений)
 const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => (
-    // ... (код компонента без изменений)
     <header className="mb-8 pb-4 border-b border-gray-200">
         <h1 className="text-4xl font-bold text-gray-900">Отчет #{report.id}</h1>
         <div className="flex items-center space-x-6 mt-2 text-base text-gray-500">
@@ -180,7 +194,7 @@ const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => (
     </header>
 );
 
-// --- Основной компонент страницы (логика рендеринга обновлена) ---
+// --- Основной компонент страницы ---
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const { report, loading, error } = useReport(reportId);
@@ -190,7 +204,6 @@ const ReportPage: React.FC = () => {
     if (error) return <Alert message={error} type="error" />;
     if (!report) return <Alert message="Отчет не найден или пуст." type="info" />;
 
-    // Проверяем, есть ли валидные результаты в новой структуре
     if (report.results && ('single_table_insights' in report.results && 'joint_table_insights' in report.results)) {
         return (
           <>
@@ -202,7 +215,6 @@ const ReportPage: React.FC = () => {
         );
     }
 
-    // Обработка старых или ошибочных форматов отчета
     if (report.results && 'error' in report.results) {
         const reportError = (report.results as any).error;
         const errorDetails = (report.results as any).details ? ` Детали: ${(report.results as any).details}` : '';
