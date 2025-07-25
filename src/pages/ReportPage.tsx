@@ -1,35 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  FileText,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  TrendingUp,
-  AlertTriangle,
-  Database,
-  BarChart3
-} from 'lucide-react';
+import { getReport, type EnhancedReport } from '../api';
 
-interface Report {
-  id: string;
-  status: 'pending' | 'completed' | 'failed';
-  created_at: string;
-  results: {
-    error?: string;
-    details?: string;
-    insights?: Array<{
-      type: string;
-      message: string;
-      correlation_data?: Record<string, number>;
-    }>;
-  };
+// --- Типы ---
+// Предполагаемая структура объекта с данными о корреляции
+interface CorrelationData {
+  with_column: string;
+  coefficient: number;
 }
 
-const ReportPage: React.FC = () => {
-  const { reportId } = useParams<{ reportId: string }>();
-  const [report, setReport] = useState<Report | null>(null);
+// Предполагаемая структура результатов, когда нет ошибки
+interface SuccessReportResults {
+    insights: Record<string, string>;
+    correlations: Record<string, Record<string, CorrelationData>>;
+}
+
+// --- Кастомный хук для загрузки отчета ---
+/**
+ * Хук для инкапсуляции логики получения отчета по его ID.
+ * @param reportId - ID отчета для загрузки.
+ */
+const useReport = (reportId: string | undefined) => {
+  const [report, setReport] = useState<EnhancedReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +32,9 @@ const ReportPage: React.FC = () => {
         setLoading(false);
         return;
       }
+
+      setLoading(true);
+      setError(null);
 
       try {
         const response = await getReport(reportId);
@@ -54,210 +49,154 @@ const ReportPage: React.FC = () => {
     fetchReport();
   }, [reportId]);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'failed':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'pending':
-        return <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />;
-      default:
-        return <Clock className="w-5 h-5 text-gray-500" />;
-    }
+  return { report, loading, error };
+};
+
+
+// --- UI Компоненты ---
+/**
+ * Компонент для отображения состояний загрузки, ошибок и информационных сообщений.
+ */
+const Alert: React.FC<{ message: string; type: 'error' | 'info' }> = ({ message, type }) => {
+  const baseClasses = 'p-4 rounded-lg border';
+  const typeClasses = {
+    error: 'bg-red-50 border-red-200 text-red-800',
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed': return 'Завершен';
-      case 'failed': return 'Ошибка';
-      case 'pending': return 'Обработка';
-      default: return 'Неизвестно';
-    }
-  };
+  return (
+    <div className={`${baseClasses} ${typeClasses[type]}`} role="alert">
+      <p className="font-semibold">{type === 'error' ? 'Ошибка Houston, we have a problem!' : 'Информация'}</p>
+      <p>{message}</p>
+    </div>
+  );
+};
 
-  const renderCorrelationTable = (correlationData: Record<string, number>) => {
-    return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Столбец
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Корреляция
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Уровень
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {Object.entries(correlationData).map(([column, correlation]) => {
-              const level = Math.abs(correlation) > 0.7 ? 'Высокий' :
-                          Math.abs(correlation) > 0.4 ? 'Средний' : 'Низкий';
-              const levelColor = Math.abs(correlation) > 0.7 ? 'text-red-600' :
-                               Math.abs(correlation) > 0.4 ? 'text-yellow-600' : 'text-green-600';
+/**
+ * Компонент для отображения анимированного спиннера загрузки.
+ */
+const LoadingSpinner: React.FC = () => (
+  <div className="flex justify-center items-center py-16">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <span className="ml-4 text-lg text-gray-600">Загрузка отчета...</span>
+  </div>
+);
 
-              return (
-                <tr key={column}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {column}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {correlation.toFixed(4)}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${levelColor}`}>
-                    {level}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
-  const renderInsights = () => {
-    if (!report?.results.insights || report.results.insights.length === 0) {
-      return null;
-    }
-
-    return (
-      <div className="space-y-4">
-        {report.results.insights.map((insight, index) => (
-          <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-start space-x-3">
-              <TrendingUp className="w-6 h-6 text-blue-500 mt-1 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Insight #{index + 1}
-                </h3>
-                <p className="text-gray-700 mb-4">{insight.message}</p>
-
-                {insight.correlation_data && (
-                  <div>
-                    <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Корреляционный анализ
-                    </h4>
-                    {renderCorrelationTable(insight.correlation_data)}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка отчета...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Ошибка загрузки</h2>
-          <p className="text-gray-600">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!report) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Отчет не найден</h2>
-          <p className="text-gray-600">Отчет с ID {reportId} не существует</p>
-        </div>
-      </div>
-    );
+/**
+ * Компонент для отображения таблицы с данными о корреляции.
+ */
+const CorrelationTable: React.FC<{ correlations: Record<string, CorrelationData> }> = ({ correlations }) => {
+  if (!correlations || Object.keys(correlations).length === 0) {
+    return <p className="text-sm text-gray-500 italic mt-2">Нет данных о корреляции.</p>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Database className="w-8 h-8 text-indigo-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Отчет анализа базы данных
-                </h1>
-                <p className="text-gray-600">ID: {reportId}</p>
-              </div>
+    <div className="overflow-x-auto mt-4">
+      <table className="min-w-full bg-white border border-gray-200 rounded-md">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Столбец</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Коррелирует с</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Коэффициент</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {Object.entries(correlations).map(([column, data]) => (
+            <tr key={column} className="hover:bg-gray-50 transition-colors duration-150">
+              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{column}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{data.with_column}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right font-mono">{data.coefficient.toFixed(4)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+/**
+ * Компонент для отображения анализа базы данных.
+ */
+const DatabaseInsightsView: React.FC<{ results: SuccessReportResults }> = ({ results }) => {
+    if (!results.insights) {
+        return <Alert message="В отчете отсутствуют данные анализа." type="info" />;
+    }
+    return (
+        <section>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Анализ базы данных 📈</h2>
+            <div className="space-y-6">
+                {Object.entries(results.insights).map(([table, insight]) => (
+                    <div key={table} className="bg-white p-6 rounded-lg shadow-md border border-gray-100 transition-shadow hover:shadow-lg">
+                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                            Таблица: <span className="font-mono bg-gray-100 px-2 py-1 rounded text-blue-600">{table}</span>
+                        </h3>
+                        <p className="text-gray-700 mb-4">{insight}</p>
+                        <CorrelationTable correlations={results.correlations?.[table] || {}} />
+                    </div>
+                ))}
             </div>
-            <div className="flex items-center space-x-2">
-              {getStatusIcon(report.status)}
-              <span className="text-sm font-medium text-gray-900">
-                {getStatusText(report.status)}
-              </span>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm text-gray-500">
-            <Clock className="w-4 h-4 mr-1" />
-            Создан: {new Date(report.created_at).toLocaleString('ru-RU')}
-          </div>
+        </section>
+    );
+};
+
+/**
+ * Компонент для шапки отчета.
+ */
+const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => (
+    <header className="mb-8 pb-4 border-b border-gray-200">
+        <h1 className="text-4xl font-bold text-gray-900">Отчет #{report.id}</h1>
+        <div className="flex items-center space-x-6 mt-2 text-base text-gray-500">
+            <span>Статус: <span className="font-semibold text-gray-800 capitalize">{report.status}</span></span>
+            <span>Создан: <span className="font-semibold text-gray-800">{new Date(report.created_at).toLocaleString('ru-RU')}</span></span>
         </div>
+    </header>
+);
 
-        {/* Error Section */}
-        {report.results.error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="w-6 h-6 text-red-500 mt-1 flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-medium text-red-800 mb-2">Ошибка анализа</h3>
-                <p className="text-red-700 mb-2">{report.results.error}</p>
-                {report.results.details && (
-                  <div className="bg-red-100 rounded p-3 mt-3">
-                    <p className="text-sm text-red-800">
-                      <strong>Детали:</strong> {report.results.details}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Insights Section */}
-        {report.status === 'completed' && !report.results.error && (
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <TrendingUp className="w-6 h-6 mr-2 text-indigo-600" />
-              Результаты анализа
-            </h2>
-            {renderInsights()}
-          </div>
-        )}
+// --- Основной компонент страницы ---
 
-        {/* Empty State */}
-        {report.status === 'completed' && !report.results.error &&
-         (!report.results.insights || report.results.insights.length === 0) && (
-          <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-            <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет данных для отображения</h3>
-            <p className="text-gray-600">Анализ завершен, но результаты отсутствуют</p>
-          </div>
-        )}
-      </div>
+const ReportPage: React.FC = () => {
+  const { reportId } = useParams<{ reportId: string }>();
+  const { report, loading, error } = useReport(reportId);
+
+  const renderContent = () => {
+    if (loading) {
+      return <LoadingSpinner />;
+    }
+
+    if (error) {
+      return <Alert message={error} type="error" />;
+    }
+
+    if (!report || !report.results) {
+      return <Alert message="Отчет не содержит данных для отображения." type="info" />;
+    }
+
+    // Проверяем, есть ли в отчете ошибка, которую вернул бэкенд
+    if ('error' in report.results) {
+        const reportError = report.results.error;
+        const errorDetails = report.results.details ? ` Детали: ${report.results.details}` : '';
+        return (
+            <>
+                <ReportHeader report={report} />
+                <Alert message={`${reportError}${errorDetails}`} type="error" />
+            </>
+        );
+    }
+
+    return (
+      <>
+        <ReportHeader report={report} />
+        <main>
+          <DatabaseInsightsView results={report.results as SuccessReportResults} />
+        </main>
+      </>
+    );
+  };
+
+  return (
+    <div className="container mx-auto p-6 md:p-8 bg-gray-50 min-h-screen">
+      {renderContent()}
     </div>
   );
 };
