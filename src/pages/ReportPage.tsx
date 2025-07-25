@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
 import { Link, Database, BarChart2, ChevronDown } from 'lucide-react';
+import ReactMarkdown from 'react-markdown'; // 1. Импортируем новую библиотеку
 
 // --- Типы ---
 type CorrelationsForTable = Record<string, Record<string, number | null>>;
@@ -17,8 +18,9 @@ interface SuccessReportResults {
     joint_table_insights: Record<string, AnalysisResult>;
 }
 
-// --- Кастомный хук для загрузки отчета ---
+// --- Кастомный хук (без изменений) ---
 const useReport = (reportId: string | undefined) => {
+    // ... код хука без изменений
   const [report, setReport] = useState<EnhancedReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,7 @@ const useReport = (reportId: string | undefined) => {
       try {
         const response = await getReport(reportId);
         setReport(response.data);
-      } catch (err: any) {
+      } catch (err: any)        {
         setError(err.response?.data?.detail || 'Произошла ошибка при загрузке отчета.');
       } finally {
         setLoading(false);
@@ -47,9 +49,10 @@ const useReport = (reportId: string | undefined) => {
   return { report, loading, error };
 };
 
-// --- UI Компоненты ---
+// --- UI Компоненты (только AnalysisCard изменен) ---
 const Alert: React.FC<{ message: string; type: 'error' | 'info' }> = ({ message, type }) => {
-  const baseClasses = 'p-4 rounded-lg border';
+    // ... код компонента без изменений
+    const baseClasses = 'p-4 rounded-lg border';
   const typeClasses = {
     error: 'bg-red-50 border-red-200 text-red-800',
     info: 'bg-blue-50 border-blue-200 text-blue-800',
@@ -64,6 +67,7 @@ const Alert: React.FC<{ message: string; type: 'error' | 'info' }> = ({ message,
 };
 
 const LoadingSpinner: React.FC = () => (
+    // ... код компонента без изменений
     <div className="flex justify-center items-center py-16">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         <span className="ml-4 text-lg text-gray-600">Загрузка отчета...</span>
@@ -71,6 +75,7 @@ const LoadingSpinner: React.FC = () => (
 );
 
 const CorrelationTable: React.FC<{ correlations: CorrelationsForTable }> = ({ correlations }) => {
+    // ... код компонента без изменений
     const correlationPairs = Object.entries(correlations).flatMap(([columnName, correlationData]) =>
         Object.entries(correlationData).map(([withColumn, coefficient]) => ({
             id: `${columnName}-${withColumn}`,
@@ -110,11 +115,12 @@ const CorrelationTable: React.FC<{ correlations: CorrelationsForTable }> = ({ co
     );
 };
 
+
 /**
- * ОБНОВЛЕННЫЙ КОМПОНЕНТ: Блок анализа теперь тоже сворачиваемый.
+ * ОБНОВЛЕННЫЙ КОМПОНЕНТ: Использует ReactMarkdown для рендеринга инсайтов.
  */
 const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: React.ReactNode }> = ({ title, result, icon }) => {
-    const [isOpen, setIsOpen] = useState(false); // По умолчанию подсекции свернуты
+    const [isOpen, setIsOpen] = useState(false);
 
     return (
         <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100">
@@ -131,8 +137,11 @@ const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: Reac
                 />
             </div>
             {isOpen && (
-                <div className="mt-4 pt-4 border-t">
-                    <p className="text-gray-700 mb-4 whitespace-pre-wrap">{result.insight}</p>
+                <div className="mt-4 pt-4 border-t text-gray-700">
+                    {/* 2. Заменяем тег <p> на компонент <ReactMarkdown> */}
+                    <div className="prose prose-sm max-w-none">
+                       <ReactMarkdown>{result.insight}</ReactMarkdown>
+                    </div>
                     <CorrelationTable correlations={result.correlations || {}} />
                 </div>
             )}
@@ -141,6 +150,7 @@ const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: Reac
 };
 
 const CollapsibleSection: React.FC<{ title: string; icon: ReactNode; children: ReactNode; defaultOpen?: boolean; }> = ({ title, icon, children, defaultOpen = true }) => {
+    // ... код компонента без изменений
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
@@ -167,6 +177,7 @@ const CollapsibleSection: React.FC<{ title: string; icon: ReactNode; children: R
 };
 
 const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ results }) => {
+    // ... код компонента без изменений
     const { single_table_insights, joint_table_insights } = results;
 
     return (
@@ -194,51 +205,55 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
     );
 };
 
-const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => (
-    <header className="mb-8 pb-4 border-b border-gray-200">
-        <h1 className="text-4xl font-bold text-gray-900">Отчет #{report.id}</h1>
-        <div className="flex items-center space-x-6 mt-2 text-base text-gray-500">
-            <span>Статус: <span className="font-semibold text-gray-800 capitalize">{report.status}</span></span>
-            <span>Создан: <span className="font-semibold text-gray-800">{new Date(report.created_at).toLocaleString('ru-RU')}</span></span>
-        </div>
-    </header>
-);
+const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => {
+    // ... код компонента без изменений
+    return (
+        <header className="mb-8 pb-4 border-b border-gray-200">
+            <h1 className="text-4xl font-bold text-gray-900">Отчет #{report.id}</h1>
+            <div className="flex items-center space-x-6 mt-2 text-base text-gray-500">
+                <span>Статус: <span className="font-semibold text-gray-800 capitalize">{report.status}</span></span>
+                <span>Создан: <span className="font-semibold text-gray-800">{new Date(report.created_at).toLocaleString('ru-RU')}</span></span>
+            </div>
+        </header>
+    );
+};
 
-// --- Основной компонент страницы ---
+// --- Основной компонент страницы (без изменений) ---
 const ReportPage: React.FC = () => {
-  const { reportId } = useParams<{ reportId: string }>();
-  const { report, loading, error } = useReport(reportId);
+    // ... код компонента без изменений
+    const { reportId } = useParams<{ reportId: string }>();
+    const { report, loading, error } = useReport(reportId);
 
-  const renderContent = () => {
-    if (loading) return <LoadingSpinner />;
-    if (error) return <Alert message={error} type="error" />;
-    if (!report) return <Alert message="Отчет не найден или пуст." type="info" />;
+    const renderContent = () => {
+      if (loading) return <LoadingSpinner />;
+      if (error) return <Alert message={error} type="error" />;
+      if (!report) return <Alert message="Отчет не найден или пуст." type="info" />;
 
-    if (report.results && ('single_table_insights' in report.results && 'joint_table_insights' in report.results)) {
-        return (
-          <>
-            <ReportHeader report={report} />
-            <main>
-              <ReportResultsView results={report.results as SuccessReportResults} />
-            </main>
-          </>
-        );
-    }
+      if (report.results && ('single_table_insights' in report.results && 'joint_table_insights' in report.results)) {
+          return (
+            <>
+              <ReportHeader report={report} />
+              <main>
+                <ReportResultsView results={report.results as SuccessReportResults} />
+              </main>
+            </>
+          );
+      }
 
-    if (report.results && 'error' in report.results) {
-        const reportError = (report.results as any).error;
-        const errorDetails = (report.results as any).details ? ` Детали: ${(report.results as any).details}` : '';
-        return <><ReportHeader report={report} /><Alert message={`${reportError}${errorDetails}`} type="error" /></>;
-    }
+      if (report.results && 'error' in report.results) {
+          const reportError = (report.results as any).error;
+          const errorDetails = (report.results as any).details ? ` Детали: ${(report.results as any).details}` : '';
+          return <><ReportHeader report={report} /><Alert message={`${reportError}${errorDetails}`} type="error" /></>;
+      }
 
-    return <Alert message="Отчет не содержит данных для отображения или имеет устаревший формат." type="info" />;
-  };
+      return <Alert message="Отчет не содержит данных для отображения или имеет устаревший формат." type="info" />;
+    };
 
-  return (
-    <div className="container mx-auto p-6 md:p-8 bg-gray-50 min-h-screen">
-      {renderContent()}
-    </div>
-  );
+    return (
+      <div className="container mx-auto p-6 md:p-8 bg-gray-50 min-h-screen">
+        {renderContent()}
+      </div>
+    );
 };
 
 export default ReportPage;
