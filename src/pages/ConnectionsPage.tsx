@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { startDatabaseAnalysis, getConnections, DatabaseConnection } from '../api'; // Предполагаем, что эти функции есть в api.ts
+import { startDatabaseAnalysis, getConnections } from '../api'; // Предполагаем, что эти функции есть в api.ts
+import type DatabaseConnection from '../api';
 import { Database, Server, AlertCircle, Loader2, History, ChevronDown } from 'lucide-react';
 
 const ConnectionsPage: React.FC = () => {
