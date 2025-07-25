@@ -1,4 +1,5 @@
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
 import { Link, Database, BarChart2, ChevronDown } from 'lucide-react';
