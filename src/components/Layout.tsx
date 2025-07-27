@@ -30,8 +30,6 @@ const Layout = () => {
               <NavLink to="/" className={({ isActive }) => `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
                 Инструменты
               </NavLink>
-
-              {/* УЛУЧШЕНИЕ: Ссылка на чат также должна быть неактивна без fileId */}
               <NavLink
                 to="/chat"
                 className={({ isActive }) => `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'} ${!fileId ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -48,6 +46,10 @@ const Layout = () => {
               >
                 <BarChartHorizontal className="w-4 h-4" />
                 Графики
+              </NavLink>
+
+              <NavLink to="/connections" className={({ isActive }) => `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+                Анализ БД
               </NavLink>
             </nav>
           </div>
