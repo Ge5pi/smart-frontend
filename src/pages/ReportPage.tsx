@@ -4,7 +4,6 @@ import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
 import { Link, Database, BarChart2, ChevronDown, PieChart, LineChart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import HtmlToPdfRussian from './PdfDocument';
 
 // --- Типы ---
 type CorrelationsForTable = Record<string, Record<string, number | null>>;
@@ -220,26 +219,15 @@ const ChartsView: React.FC<{ visualizations: Record<string, string[]> | undefine
 };
 
 const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => {
-  return (
-    <div className="bg-white shadow">
-      <div className="px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Отчет #{report.id}
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Создан: {new Date(report.created_at).toLocaleString('ru-RU')} |
-              Статус: {report.status}
-            </p>
-          </div>
-          <div className="flex space-x-3">
-            <HtmlToPdfRussian report={report} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    return (
+        <header className="mb-8 pb-4 border-b border-gray-200">
+            <h1 className="text-4xl font-bold text-gray-900">Отчет #{report.id}</h1>
+            <div className="flex items-center space-x-6 mt-2 text-base text-gray-500">
+                <span>Статус: <span className="font-semibold text-gray-800 capitalize">{report.status}</span></span>
+                <span>Создан: <span className="font-semibold text-gray-800">{new Date(report.created_at).toLocaleString('ru-RU')}</span></span>
+            </div>
+        </header>
+    );
 };
 
 const ReportPage: React.FC = () => {
