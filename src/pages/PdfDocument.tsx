@@ -1,8 +1,17 @@
+import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, PDFDownloadLink } from '@react-pdf/renderer';
+import { Download } from 'lucide-react'; // Добавляем импорт иконки
 import type { EnhancedReport } from '../api';
 
 interface PdfDocumentProps {
   report: EnhancedReport;
+}
+
+// Типизация для результатов отчета
+interface SuccessReportResults {
+  single_table_insights: Record<string, any>;
+  joint_table_insights: Record<string, any>;
+  visualizations: Record<string, string[]>;
 }
 
 const styles = StyleSheet.create({
@@ -51,7 +60,8 @@ const styles = StyleSheet.create({
 });
 
 const ReportDocument: React.FC<PdfDocumentProps> = ({ report }) => {
-  const results = report.results as any;
+  // Типизируем results правильно
+  const results = report.results as SuccessReportResults | null;
 
   return (
     <Document>
@@ -91,16 +101,22 @@ const ReportDocument: React.FC<PdfDocumentProps> = ({ report }) => {
         {results?.visualizations && Object.keys(results.visualizations).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.subtitle}>Визуализации</Text>
-            {Object.entries(results.visualizations).map(([sourceName, chartUrls]: [string, string[]]) => (
-              <View key={sourceName} style={styles.section}>
-                <Text style={styles.chartTitle}>Графики для: {sourceName}</Text>
-                {chartUrls.map((chartUrl, index) => (
-                  <View key={index} style={styles.chartContainer}>
-                    <Image style={styles.chart} src={chartUrl} />
-                  </View>
-                ))}
-              </View>
-            ))}
+            {/* Исправляем типизацию для visualizations */}
+            {Object.entries(results.visualizations).map(([sourceName, chartUrls]) => {
+              // Проверяем, что chartUrls это массив строк
+              if (!Array.isArray(chartUrls)) return null;
+
+              return (
+                <View key={sourceName} style={styles.section}>
+                  <Text style={styles.chartTitle}>Графики для: {sourceName}</Text>
+                  {chartUrls.map((chartUrl: string, index: number) => (
+                    <View key={index} style={styles.chartContainer}>
+                      <Image style={styles.chart} src={chartUrl} />
+                    </View>
+                  ))}
+                </View>
+              );
+            })}
           </View>
         )}
       </Page>
