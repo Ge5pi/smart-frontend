@@ -1,6 +1,5 @@
 import React from 'react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Download } from 'lucide-react';
 import type { EnhancedReport } from '../api';
 
