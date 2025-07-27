@@ -1,195 +1,194 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image, PDFDownloadLink, Font } from '@react-pdf/renderer';
+import jsPDF from 'jspdf';
 import { Download } from 'lucide-react';
 import type { EnhancedReport } from '../api';
 
-// Регистрируем шрифт с поддержкой кириллицы
-Font.register({
-  family: 'Roboto',
-  fonts: [
-    {
-      src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2',
-      fontWeight: 'normal',
-    },
-    {
-      src: 'https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2',
-      fontWeight: 'bold',
-    },
-  ],
-});
+// Добавляем кириллические шрифты
+import 'jspdf/dist/polyfills.es.js';
 
-interface PdfDocumentProps {
+interface PdfExportProps {
   report: EnhancedReport;
 }
 
-interface SuccessReportResults {
-  single_table_insights: Record<string, any>;
-  joint_table_insights: Record<string, any>;
-  visualizations: Record<string, string[]>;
-}
+const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
+  const generatePdf = async () => {
+    try {
+      // Создаем PDF с базовой конфигурацией
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
 
-const styles = StyleSheet.create({
-  page: {
-    flexDirection: 'column',
-    backgroundColor: '#FFFFFF',
-    padding: 30,
-    fontFamily: 'Roboto',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  subtitle: {
-    fontSize: 18,
-    marginBottom: 15,
-    fontWeight: 'bold',
-    color: '#374151',
-  },
-  text: {
-    fontSize: 12,
-    marginBottom: 10,
-    lineHeight: 1.6,
-    color: '#111827',
-  },
-  metadata: {
-    fontSize: 10,
-    color: '#6b7280',
-    marginBottom: 20,
-  },
-  section: {
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottom: '1px solid #e5e7eb',
-  },
-  chartContainer: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f9fafb',
-  },
-  chartTitle: {
-    fontSize: 14,
-    marginBottom: 10,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  chart: {
-    width: '100%',
-    height: 200,
-    objectFit: 'contain',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    marginBottom: 5,
-  },
-  tableCell: {
-    flex: 1,
-    fontSize: 10,
-    padding: 5,
-  },
-});
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      let yPosition = margin;
 
-const ReportDocument: React.FC<PdfDocumentProps> = ({ report }) => {
-  const results = report.results as SuccessReportResults | null;
+      // Функция для добавления новой страницы
+      const checkPageBreak = (requiredSpace: number = 20) => {
+        if (yPosition > pageHeight - requiredSpace) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+      };
+
+      // Функция для безопасного добавления текста
+      const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
+        pdf.setFontSize(fontSize);
+        pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
+
+        // Конвертируем русский текст в латиницу для совместимости
+        const safeText = text || 'No data';
+        const lines = pdf.splitTextToSize(safeText, pageWidth - 2 * margin);
+
+        checkPageBreak(lines.length * 5 + 5);
+        pdf.text(lines, margin, yPosition);
+        yPosition += lines.length * 5 + 5;
+      };
+
+      // Заголовок отчета
+      addText(`Report #${report.id}`, 20, true);
+      addText(`Created: ${new Date(report.created_at).toLocaleString()}`, 10);
+      addText(`Status: ${report.status}`, 10);
+      yPosition += 10;
+
+      const results = report.results as any;
+
+      if (!results) {
+        addText('No data available for this report');
+        pdf.save(`report_${report.id}.pdf`);
+        return;
+      }
+
+      // Анализ отдельных таблиц
+      if (results.single_table_insights && Object.keys(results.single_table_insights).length > 0) {
+        checkPageBreak(30);
+        addText('SINGLE TABLE ANALYSIS', 16, true);
+
+        for (const [tableName, analysis] of Object.entries(results.single_table_insights)) {
+          checkPageBreak(25);
+          addText(`Table: ${tableName}`, 14, true);
+
+          let insight = '';
+          if (typeof analysis === 'object' && analysis && analysis.insight) {
+            insight = analysis.insight;
+          } else if (typeof analysis === 'string') {
+            insight = analysis;
+          } else {
+            insight = 'No insights available';
+          }
+
+          // Транслитерация для русского текста
+          const transliteratedInsight = transliterateText(insight);
+          addText(transliteratedInsight, 10);
+          yPosition += 5;
+        }
+      }
+
+      // Анализ связанных таблиц
+      if (results.joint_table_insights && Object.keys(results.joint_table_insights).length > 0) {
+        checkPageBreak(30);
+        addText('JOINT TABLE ANALYSIS', 16, true);
+
+        for (const [joinKey, analysis] of Object.entries(results.joint_table_insights)) {
+          checkPageBreak(25);
+          addText(`Relationship: ${joinKey}`, 14, true);
+
+          let insight = '';
+          if (typeof analysis === 'object' && analysis && analysis.insight) {
+            insight = analysis.insight;
+          } else if (typeof analysis === 'string') {
+            insight = analysis;
+          } else {
+            insight = 'No insights available';
+          }
+
+          const transliteratedInsight = transliterateText(insight);
+          addText(transliteratedInsight, 10);
+          yPosition += 5;
+        }
+      }
+
+      // Добавляем графики
+      if (results.visualizations && Object.keys(results.visualizations).length > 0) {
+        pdf.addPage();
+        yPosition = margin;
+
+        addText('VISUALIZATIONS', 16, true);
+
+        for (const [sourceName, chartUrls] of Object.entries(results.visualizations)) {
+          if (!Array.isArray(chartUrls)) continue;
+
+          checkPageBreak(25);
+          addText(`Charts for: ${sourceName}`, 14, true);
+
+          for (const [index, chartUrl] of chartUrls.entries()) {
+            try {
+              const response = await fetch(chartUrl);
+              if (!response.ok) throw new Error('Failed to fetch image');
+
+              const blob = await response.blob();
+              const imageData = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+
+              checkPageBreak(90);
+
+              const imgWidth = pageWidth - 2 * margin;
+              const imgHeight = 80;
+
+              pdf.addImage(imageData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+              yPosition += imgHeight + 10;
+
+            } catch (error) {
+              console.error(`Error adding chart ${index + 1}:`, error);
+              addText(`Error loading chart ${index + 1}`, 10);
+            }
+          }
+          yPosition += 10;
+        }
+      }
+
+      // Сохраняем PDF
+      pdf.save(`report_${report.id}.pdf`);
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Произошла ошибка при создании PDF отчета. Попробуйте еще раз.');
+    }
+  };
 
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.section}>
-          <Text style={styles.title}>Отчет #{report.id}</Text>
-          <Text style={styles.metadata}>
-            Создан: {new Date(report.created_at).toLocaleString('ru-RU')} | Статус: {report.status}
-          </Text>
-        </View>
-
-        {results ? (
-          <>
-            {/* Анализ отдельных таблиц */}
-            {results.single_table_insights && Object.keys(results.single_table_insights).length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.subtitle}>Анализ отдельных таблиц</Text>
-                {Object.entries(results.single_table_insights).map(([tableName, analysis]: [string, any]) => (
-                  <View key={tableName} style={{ marginBottom: 15 }}>
-                    <Text style={styles.chartTitle}>Таблица: {tableName}</Text>
-                    <Text style={styles.text}>
-                      {typeof analysis === 'object' && analysis.insight
-                        ? analysis.insight
-                        : typeof analysis === 'string'
-                        ? analysis
-                        : 'Нет инсайтов'
-                      }
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Анализ связанных таблиц */}
-            {results.joint_table_insights && Object.keys(results.joint_table_insights).length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.subtitle}>Анализ связанных таблиц</Text>
-                {Object.entries(results.joint_table_insights).map(([joinKey, analysis]: [string, any]) => (
-                  <View key={joinKey} style={{ marginBottom: 15 }}>
-                    <Text style={styles.chartTitle}>Связь: {joinKey}</Text>
-                    <Text style={styles.text}>
-                      {typeof analysis === 'object' && analysis.insight
-                        ? analysis.insight
-                        : typeof analysis === 'string'
-                        ? analysis
-                        : 'Нет инсайтов'
-                      }
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Графики */}
-            {results.visualizations && Object.keys(results.visualizations).length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.subtitle}>Визуализации</Text>
-                {Object.entries(results.visualizations).map(([sourceName, chartUrls]) => {
-                  if (!Array.isArray(chartUrls)) return null;
-
-                  return (
-                    <View key={sourceName} style={{ marginBottom: 20 }}>
-                      <Text style={styles.chartTitle}>Графики для: {sourceName}</Text>
-                      {chartUrls.map((chartUrl: string, index: number) => (
-                        <View key={index} style={styles.chartContainer}>
-                          <Text style={{ fontSize: 10, marginBottom: 5 }}>
-                            График {index + 1}
-                          </Text>
-                          <Image style={styles.chart} src={chartUrl} />
-                        </View>
-                      ))}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-          </>
-        ) : (
-          <View style={styles.section}>
-            <Text style={styles.text}>Нет данных для отображения в отчете</Text>
-          </View>
-        )}
-      </Page>
-    </Document>
+    <button
+      onClick={generatePdf}
+      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <Download className="w-4 h-4 mr-2" />
+      Скачать PDF
+    </button>
   );
 };
 
-export const PdfDownload: React.FC<PdfDocumentProps> = ({ report }) => (
-  <PDFDownloadLink
-    document={<ReportDocument report={report} />}
-    fileName={`report_${report.id}.pdf`}
-    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-  >
-    {({ loading }) => (
-      <>
-        <Download className="w-4 h-4 mr-2" />
-        {loading ? 'Подготовка PDF...' : 'Скачать PDF'}
-      </>
-    )}
-  </PDFDownloadLink>
-);
+// Функция транслитерации для безопасной работы с кириллицей
+const transliterateText = (text: string): string => {
+  const translitMap: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
+    'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+    'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+    'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
+    'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
+  };
+
+  return text.replace(/[а-яёА-ЯЁ]/g, (match) => translitMap[match] || match);
+};
+
+export default PdfExportFixed;

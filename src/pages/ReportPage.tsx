@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
 import { Link, Database, BarChart2, ChevronDown, PieChart, LineChart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { PdfDownload } from './PdfDocument';
+import { PdfExportFixed } from './PdfDocument';
 
 // --- Типы ---
 type CorrelationsForTable = Record<string, Record<string, number | null>>;
@@ -234,7 +234,7 @@ const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => {
             </p>
           </div>
           <div className="flex space-x-3">
-            <PdfDownload report={report} />
+            <PdfExportFixed report={report} />
           </div>
         </div>
       </div>
