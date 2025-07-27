@@ -1,19 +1,21 @@
 import React from 'react';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Download } from 'lucide-react';
 import type { EnhancedReport } from '../api';
-
-// Добавляем кириллические шрифты
-import 'jspdf/dist/polyfills.es.js';
 
 interface PdfExportProps {
   report: EnhancedReport;
 }
 
+// Добавляем интерфейс для правильной типизации анализа
+interface AnalysisInsight {
+  insight?: string;
+}
+
 const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
   const generatePdf = async () => {
     try {
-      // Создаем PDF с базовой конфигурацией
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -25,7 +27,6 @@ const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
       const margin = 15;
       let yPosition = margin;
 
-      // Функция для добавления новой страницы
       const checkPageBreak = (requiredSpace: number = 20) => {
         if (yPosition > pageHeight - requiredSpace) {
           pdf.addPage();
@@ -33,12 +34,10 @@ const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
         }
       };
 
-      // Функция для безопасного добавления текста
       const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
         pdf.setFontSize(fontSize);
         pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
 
-        // Конвертируем русский текст в латиницу для совместимости
         const safeText = text || 'No data';
         const lines = pdf.splitTextToSize(safeText, pageWidth - 2 * margin);
 
@@ -70,16 +69,17 @@ const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
           checkPageBreak(25);
           addText(`Table: ${tableName}`, 14, true);
 
+          // Исправляем типизацию для получения insight
           let insight = '';
-          if (typeof analysis === 'object' && analysis && analysis.insight) {
-            insight = analysis.insight;
+          if (analysis && typeof analysis === 'object') {
+            const analysisObj = analysis as AnalysisInsight;
+            insight = analysisObj.insight || 'No insights available';
           } else if (typeof analysis === 'string') {
             insight = analysis;
           } else {
             insight = 'No insights available';
           }
 
-          // Транслитерация для русского текста
           const transliteratedInsight = transliterateText(insight);
           addText(transliteratedInsight, 10);
           yPosition += 5;
@@ -95,9 +95,11 @@ const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
           checkPageBreak(25);
           addText(`Relationship: ${joinKey}`, 14, true);
 
+          // Исправляем типизацию для получения insight
           let insight = '';
-          if (typeof analysis === 'object' && analysis && analysis.insight) {
-            insight = analysis.insight;
+          if (analysis && typeof analysis === 'object') {
+            const analysisObj = analysis as AnalysisInsight;
+            insight = analysisObj.insight || 'No insights available';
           } else if (typeof analysis === 'string') {
             insight = analysis;
           } else {
@@ -153,7 +155,6 @@ const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
         }
       }
 
-      // Сохраняем PDF
       pdf.save(`report_${report.id}.pdf`);
 
     } catch (error) {
@@ -173,7 +174,7 @@ const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
   );
 };
 
-// Функция транслитерации для безопасной работы с кириллицей
+// Функция транслитерации
 const transliterateText = (text: string): string => {
   const translitMap: Record<string, string> = {
     'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
