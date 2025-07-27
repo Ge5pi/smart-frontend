@@ -1,194 +1,158 @@
 import React from 'react';
+import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Download } from 'lucide-react';
 import type { EnhancedReport } from '../api';
 
-interface PdfExportProps {
-  report: EnhancedReport;
-}
-
-// Добавляем интерфейс для правильной типизации анализа
 interface AnalysisInsight {
   insight?: string;
 }
 
-const PdfExportFixed: React.FC<PdfExportProps> = ({ report }) => {
-  const generatePdf = async () => {
+const HtmlToPdfRussian: React.FC<{ report: EnhancedReport }> = ({ report }) => {
+  const generatePdfFromHtml = async () => {
     try {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-      let yPosition = margin;
-
-      const checkPageBreak = (requiredSpace: number = 20) => {
-        if (yPosition > pageHeight - requiredSpace) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-      };
-
-      const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
-        pdf.setFontSize(fontSize);
-        pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
-
-        const safeText = text || 'No data';
-        const lines = pdf.splitTextToSize(safeText, pageWidth - 2 * margin);
-
-        checkPageBreak(lines.length * 5 + 5);
-        pdf.text(lines, margin, yPosition);
-        yPosition += lines.length * 5 + 5;
-      };
-
-      // Заголовок отчета
-      addText(`Report #${report.id}`, 20, true);
-      addText(`Created: ${new Date(report.created_at).toLocaleString()}`, 10);
-      addText(`Status: ${report.status}`, 10);
-      yPosition += 10;
+      // Создаем временный div с отчетом
+      const reportElement = document.createElement('div');
+      reportElement.style.cssText = `
+        width: 800px;
+        padding: 40px;
+        background: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        color: #000;
+        line-height: 1.6;
+      `;
 
       const results = report.results as any;
 
-      if (!results) {
-        addText('No data available for this report');
-        pdf.save(`report_${report.id}.pdf`);
-        return;
-      }
-
-      // Анализ отдельных таблиц
-      if (results.single_table_insights && Object.keys(results.single_table_insights).length > 0) {
-        checkPageBreak(30);
-        addText('SINGLE TABLE ANALYSIS', 16, true);
-
-        for (const [tableName, analysis] of Object.entries(results.single_table_insights)) {
-          checkPageBreak(25);
-          addText(`Table: ${tableName}`, 14, true);
-
-          // Исправляем типизацию для получения insight
-          let insight = '';
-          if (analysis && typeof analysis === 'object') {
-            const analysisObj = analysis as AnalysisInsight;
-            insight = analysisObj.insight || 'No insights available';
-          } else if (typeof analysis === 'string') {
-            insight = analysis;
-          } else {
-            insight = 'No insights available';
-          }
-
-          const transliteratedInsight = transliterateText(insight);
-          addText(transliteratedInsight, 10);
-          yPosition += 5;
+      // Функция для безопасного получения инсайта
+      const getInsight = (analysis: any): string => {
+        if (analysis && typeof analysis === 'object') {
+          const analysisObj = analysis as AnalysisInsight;
+          return analysisObj.insight || 'Нет инсайтов';
+        } else if (typeof analysis === 'string') {
+          return analysis;
         }
-      }
+        return 'Нет инсайтов';
+      };
 
-      // Анализ связанных таблиц
-      if (results.joint_table_insights && Object.keys(results.joint_table_insights).length > 0) {
-        checkPageBreak(30);
-        addText('JOINT TABLE ANALYSIS', 16, true);
+      reportElement.innerHTML = `
+        <div style="border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px;">
+          <h1 style="color: #1f2937; margin: 0 0 10px 0; font-size: 28px; font-weight: bold;">
+            Отчет #${report.id}
+          </h1>
+          <p style="color: #6b7280; margin: 0; font-size: 14px;">
+            Создан: ${new Date(report.created_at).toLocaleString('ru-RU')} | Статус: ${report.status}
+          </p>
+        </div>
 
-        for (const [joinKey, analysis] of Object.entries(results.joint_table_insights)) {
-          checkPageBreak(25);
-          addText(`Relationship: ${joinKey}`, 14, true);
+        ${results?.single_table_insights && Object.keys(results.single_table_insights).length > 0 ? `
+          <div style="margin-bottom: 40px;">
+            <h2 style="color: #374151; margin: 0 0 20px 0; font-size: 22px; font-weight: bold; border-left: 4px solid #3b82f6; padding-left: 15px;">
+              Анализ отдельных таблиц
+            </h2>
+            ${Object.entries(results.single_table_insights).map(([name, analysis]: [string, any]) => `
+              <div style="margin-bottom: 25px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb;">
+                <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 16px; font-weight: bold;">
+                  📊 Таблица: ${name}
+                </h3>
+                <p style="margin: 0; line-height: 1.7; font-size: 14px; color: #374151;">
+                  ${getInsight(analysis)}
+                </p>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
 
-          // Исправляем типизацию для получения insight
-          let insight = '';
-          if (analysis && typeof analysis === 'object') {
-            const analysisObj = analysis as AnalysisInsight;
-            insight = analysisObj.insight || 'No insights available';
-          } else if (typeof analysis === 'string') {
-            insight = analysis;
-          } else {
-            insight = 'No insights available';
-          }
+        ${results?.joint_table_insights && Object.keys(results.joint_table_insights).length > 0 ? `
+          <div style="margin-bottom: 40px;">
+            <h2 style="color: #374151; margin: 0 0 20px 0; font-size: 22px; font-weight: bold; border-left: 4px solid #10b981; padding-left: 15px;">
+              Анализ связанных таблиц
+            </h2>
+            ${Object.entries(results.joint_table_insights).map(([name, analysis]: [string, any]) => `
+              <div style="margin-bottom: 25px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f0fdf4;">
+                <h3 style="color: #1f2937; margin: 0 0 15px 0; font-size: 16px; font-weight: bold;">
+                  🔗 Связь: ${name}
+                </h3>
+                <p style="margin: 0; line-height: 1.7; font-size: 14px; color: #374151;">
+                  ${getInsight(analysis)}
+                </p>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
 
-          const transliteratedInsight = transliterateText(insight);
-          addText(transliteratedInsight, 10);
-          yPosition += 5;
-        }
-      }
+        ${results?.visualizations && Object.keys(results.visualizations).length > 0 ? `
+          <div style="margin-bottom: 40px;">
+            <h2 style="color: #374151; margin: 0 0 20px 0; font-size: 22px; font-weight: bold; border-left: 4px solid #f59e0b; padding-left: 15px;">
+              Визуализации
+            </h2>
+            <p style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">
+              📈 Графики и диаграммы доступны в интерактивной версии отчета
+            </p>
+          </div>
+        ` : ''}
 
-      // Добавляем графики
-      if (results.visualizations && Object.keys(results.visualizations).length > 0) {
+        <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
+          <p style="margin: 0;">
+            Отчет сгенерирован: ${new Date().toLocaleString('ru-RU')}
+          </p>
+        </div>
+      `;
+
+      document.body.appendChild(reportElement);
+
+      const canvas = await html2canvas(reportElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
         pdf.addPage();
-        yPosition = margin;
-
-        addText('VISUALIZATIONS', 16, true);
-
-        for (const [sourceName, chartUrls] of Object.entries(results.visualizations)) {
-          if (!Array.isArray(chartUrls)) continue;
-
-          checkPageBreak(25);
-          addText(`Charts for: ${sourceName}`, 14, true);
-
-          for (const [index, chartUrl] of chartUrls.entries()) {
-            try {
-              const response = await fetch(chartUrl);
-              if (!response.ok) throw new Error('Failed to fetch image');
-
-              const blob = await response.blob();
-              const imageData = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-              });
-
-              checkPageBreak(90);
-
-              const imgWidth = pageWidth - 2 * margin;
-              const imgHeight = 80;
-
-              pdf.addImage(imageData, 'PNG', margin, yPosition, imgWidth, imgHeight);
-              yPosition += imgHeight + 10;
-
-            } catch (error) {
-              console.error(`Error adding chart ${index + 1}:`, error);
-              addText(`Error loading chart ${index + 1}`, 10);
-            }
-          }
-          yPosition += 10;
-        }
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
 
-      pdf.save(`report_${report.id}.pdf`);
+      pdf.save(`отчет_${report.id}.pdf`);
 
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Произошла ошибка при создании PDF отчета. Попробуйте еще раз.');
+      console.error('Ошибка при создании PDF:', error);
+      alert('Ошибка при создании PDF отчета');
+    } finally {
+      // Удаляем временный элемент
+      const tempElement = document.querySelector('div[style*="left: -9999px"]');
+      if (tempElement) {
+        document.body.removeChild(tempElement);
+      }
     }
   };
 
   return (
     <button
-      onClick={generatePdf}
-      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      onClick={generatePdfFromHtml}
+      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
     >
       <Download className="w-4 h-4 mr-2" />
-      Скачать PDF
+      Скачать PDF (HTML)
     </button>
   );
 };
 
-// Функция транслитерации
-const transliterateText = (text: string): string => {
-  const translitMap: Record<string, string> = {
-    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
-    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
-    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
-    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
-    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
-    'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
-    'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
-    'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
-    'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
-  };
-
-  return text.replace(/[а-яёА-ЯЁ]/g, (match) => translitMap[match] || match);
-};
-
-export default PdfExportFixed;
+export default HtmlToPdfRussian;
