@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
 import { Link, Database, BarChart2, ChevronDown, PieChart, LineChart, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-
+import { API_URL } from '../api';
 // --- Типы ---
 type CorrelationsForTable = Record<string, Record<string, number | null>>;
 interface AnalysisResult {
@@ -264,7 +264,8 @@ const ChartsView: React.FC<{ visualizations: Record<string, string[]> | undefine
 const downloadPDF = async (reportId: number) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`/api/analytics/database/reports/${reportId}/pdf`, {
+    // ИЗМЕНЕНИЕ: Используйте полный API_URL для запроса PDF
+    const response = await fetch(`${API_URL}/analytics/database/reports/${reportId}/pdf`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -274,21 +275,21 @@ const downloadPDF = async (reportId: number) => {
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Ошибка сервера:', errorData);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}. Детали: ${errorData}`);
     }
 
     // Проверяем Content-Type
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/pdf')) {
       console.error('Неверный тип контента:', contentType);
-      throw new Error('Сервер вернул не PDF файл');
+      throw new Error('Сервер вернул не PDF файл (ожидался application/pdf)');
     }
 
     const blob = await response.blob();
 
     // Проверяем размер blob
     if (blob.size === 0) {
-      throw new Error('Получен пустой файл');
+      throw new Error('Получен пустой файл отчета');
     }
 
     const url = window.URL.createObjectURL(blob);
@@ -301,12 +302,11 @@ const downloadPDF = async (reportId: number) => {
     document.body.removeChild(a);
 
     console.log(`PDF файл успешно скачан. Размер: ${blob.size} байт`);
-  } catch (error: unknown) { // Можно оставить 'error' или явно указать 'error: unknown'
+  } catch (error: unknown) {
       console.error('Ошибка при скачивании PDF:', error);
       if (error instanceof Error) {
         alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
       } else {
-        // Если это не объект Error, обработайте как строку или другой тип
         alert(`Произошла неизвестная ошибка при скачивании PDF отчета: ${String(error)}`);
       }
     }
