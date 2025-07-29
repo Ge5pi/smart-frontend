@@ -272,10 +272,25 @@ const downloadPDF = async (reportId: number) => {
     });
 
     if (!response.ok) {
-      throw new Error('Ошибка при скачивании PDF');
+      const errorData = await response.text();
+      console.error('Ошибка сервера:', errorData);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    // Проверяем Content-Type
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/pdf')) {
+      console.error('Неверный тип контента:', contentType);
+      throw new Error('Сервер вернул не PDF файл');
     }
 
     const blob = await response.blob();
+
+    // Проверяем размер blob
+    if (blob.size === 0) {
+      throw new Error('Получен пустой файл');
+    }
+
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -284,10 +299,11 @@ const downloadPDF = async (reportId: number) => {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+
+    console.log(`PDF файл успешно скачан. Размер: ${blob.size} байт`);
   } catch (error) {
     console.error('Ошибка при скачивании PDF:', error);
-    // Можно добавить toast уведомление об ошибке
-    alert('Произошла ошибка при скачивании PDF отчета');
+    alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
   }
 };
 
