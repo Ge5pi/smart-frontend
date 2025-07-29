@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startDatabaseAnalysis, getConnections, getUserReports } from '../api';
 import type { DatabaseConnection, Report } from '../api';
@@ -302,11 +302,6 @@ const ConnectionsPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900">
-                            ID: {report.id}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
