@@ -301,10 +301,15 @@ const downloadPDF = async (reportId: number) => {
     document.body.removeChild(a);
 
     console.log(`PDF файл успешно скачан. Размер: ${blob.size} байт`);
-  } catch (error) {
-    console.error('Ошибка при скачивании PDF:', error);
-    alert(`Произошла ошибка при скачивании PDF отчета: ${error?.message}`);
-  }
+  } catch (error: unknown) { // Можно оставить 'error' или явно указать 'error: unknown'
+      console.error('Ошибка при скачивании PDF:', error);
+      if (error instanceof Error) {
+        alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
+      } else {
+        // Если это не объект Error, обработайте как строку или другой тип
+        alert(`Произошла неизвестная ошибка при скачивании PDF отчета: ${String(error)}`);
+      }
+    }
 };
 
 const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => {
