@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // --- Конфигурация экземпляра Axios ---
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 console.log("🚀 VITE_API_URL:", import.meta.env.VITE_API_URL);
 
 const api = axios.create({
