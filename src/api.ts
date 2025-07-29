@@ -103,4 +103,14 @@ export const getUserReports = () => {
   return api.get('/analytics/database/reports');
 };
 
+export const downloadReportPDF = (reportId: number) => {
+  const token = localStorage.getItem('authToken');
+  return fetch(`${API_URL}/analytics/database/reports/${reportId}/pdf`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+};
+
 export default api;
