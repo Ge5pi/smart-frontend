@@ -289,7 +289,7 @@ const ConnectionsPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <h3 className="text-lg font-medium text-gray-900 mb-1">
-                          {getConnectionAlias(report.connection_id)}
+                          {getConnectionAlias(report.connection_id ?? null)}
                         </h3>
                         <div className="flex items-center text-sm text-gray-500 mb-2">
                           <Clock className="w-4 h-4 mr-1" />
