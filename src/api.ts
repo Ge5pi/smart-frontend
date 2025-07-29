@@ -55,6 +55,17 @@ export interface EnhancedReport {
   results: DatabaseAnalysisResults | ErrorResults | null;
 }
 
+export interface Report {
+  id: number;
+  user_id: number;
+  status: string;
+  created_at: string;
+  results: DatabaseAnalysisResults | ErrorResults | null;
+  // Добавляем поля для связи с подключением
+  connection_alias?: string;
+  connection_id?: number;
+}
+
 
 export const getConnections = () => {
   return api.get<DatabaseConnection[]>('/analytics/database/connections');
@@ -86,6 +97,10 @@ export const startDatabaseAnalysis = (
       'Content-Type': 'multipart/form-data',
     },
   });
+};
+
+export const getUserReports = () => {
+  return api.get('/analytics/database/reports');
 };
 
 export default api;

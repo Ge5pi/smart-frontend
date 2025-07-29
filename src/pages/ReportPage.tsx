@@ -17,7 +17,6 @@ interface SuccessReportResults {
     visualizations: Record<string, string[]>;
 }
 
-// --- Компоненты ---
 
 const useReport = (reportId: string | undefined) => {
   const [report, setReport] = useState<EnhancedReport | null>(null);
