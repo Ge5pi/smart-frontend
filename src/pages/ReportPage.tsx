@@ -303,7 +303,7 @@ const downloadPDF = async (reportId: number) => {
     console.log(`PDF файл успешно скачан. Размер: ${blob.size} байт`);
   } catch (error) {
     console.error('Ошибка при скачивании PDF:', error);
-    alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
+    alert(`Произошла ошибка при скачивании PDF отчета: ${error?.message}`);
   }
 };
 
