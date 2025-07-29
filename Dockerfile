@@ -21,8 +21,17 @@ COPY . .
 # Этот шаг также будет выполняться заново, так как предыдущий не был взят из кэша.
 RUN npm run build
 
-# Продакшн-сервер: nginx
 FROM nginx:stable-alpine
+
+# Установка шрифтов DejaVu для поддержки кириллицы
+RUN apk update && \
+    apk add --no-cache \
+    fontconfig \
+    ttf-dejavu && \
+    rm -rf /var/cache/apk/*
+
+# Обновление кэша шрифтов
+RUN fc-cache -fv
 
 # Копируем собранный фронт
 COPY --from=builder /app/dist /usr/share/nginx/html

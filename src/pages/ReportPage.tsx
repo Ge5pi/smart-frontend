@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
 import { Link, Database, BarChart2, ChevronDown, PieChart, LineChart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { Download } from 'lucide-react';
 
 // --- Типы ---
 type CorrelationsForTable = Record<string, Record<string, number | null>>;
@@ -89,6 +90,36 @@ const useReport = (reportId: string | undefined) => {
   }, [report]);
 
   return { report, loading, error };
+};
+
+const downloadPDF = async () => {
+  if (!report) return;
+
+  try {
+    const response = await fetch(`/api/analytics/database/reports/${report.id}/pdf`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`, // Или как вы храните токен
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Ошибка при скачивании PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report_${report.id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Ошибка при скачивании PDF:', error);
+    // Добавьте обработку ошибки в UI
+  }
 };
 
 const Alert: React.FC<{ message: string; type: 'error' | 'info' }> = ({ message, type }) => {
@@ -262,15 +293,43 @@ const ChartsView: React.FC<{ visualizations: Record<string, string[]> | undefine
 };
 
 const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => {
-    return (
-        <header className="mb-8 pb-4 border-b border-gray-200">
-            <h1 className="text-4xl font-bold text-gray-900">Отчет #{report.id}</h1>
-            <div className="flex items-center space-x-6 mt-2 text-base text-gray-500">
-                <span>Статус: <span className="font-semibold text-gray-800 capitalize">{report.status}</span></span>
-                <span>Создан: <span className="font-semibold text-gray-800">{new Date(report.created_at).toLocaleString('ru-RU')}</span></span>
-            </div>
-        </header>
-    );
+  return (
+    <div className="bg-white shadow-sm border-b px-6 py-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Отчет #{report.id}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Создан: {new Date(report.created_at).toLocaleString('ru-RU')}
+          </p>
+          <div className="mt-2">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              report.status === 'completed'
+                ? 'bg-green-100 text-green-800'
+                : report.status === 'failed'
+                ? 'bg-red-100 text-red-800'
+                : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              {report.status === 'completed' ? 'Завершен' :
+               report.status === 'failed' ? 'Ошибка' :
+               report.status === 'processing' ? 'Обработка' : 'В очереди'}
+            </span>
+          </div>
+        </div>
+
+        {report.status === 'completed' && (
+          <button
+            onClick={downloadPDF}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Скачать PDF
+          </button>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const ReportPage: React.FC = () => {
