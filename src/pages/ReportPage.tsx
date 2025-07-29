@@ -263,33 +263,63 @@ const ChartsView: React.FC<{ visualizations: Record<string, string[]> | undefine
 
 const downloadPDF = async (reportId: number) => {
   try {
+    console.log('Начинаем скачивание PDF для отчета:', reportId);
+
+    // Проверяем наличие токена
     const token = localStorage.getItem('authToken');
+    if (!token) {
+      throw new Error('Токен аутентификации не найден. Пожалуйста, войдите в систему заново.');
+    }
+
+    console.log('Токен найден, длина:', token.length);
+
     const response = await fetch(`/api/analytics/database/reports/${reportId}/pdf`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
+        'Accept': 'application/pdf',
       },
     });
 
+    console.log('Статус ответа:', response.status);
+    console.log('Content-Type:', response.headers.get('content-type'));
+    console.log('URL запроса:', response.url);
+
+    // Если ответ не успешный, читаем текст ошибки
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Ошибка сервера:', errorData);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Ошибка сервера:', errorText);
+
+      // Проверяем, если это HTML страница с ошибкой
+      if (errorText.includes('<html>') || errorText.includes('<!DOCTYPE')) {
+        throw new Error(`Сервер вернул HTML страницу вместо PDF. Статус: ${response.status}`);
+      }
+
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
-    // Проверяем Content-Type
     const contentType = response.headers.get('content-type');
+    console.log('Получен Content-Type:', contentType);
+
     if (!contentType || !contentType.includes('application/pdf')) {
-      console.error('Неверный тип контента:', contentType);
-      throw new Error('Сервер вернул не PDF файл');
+      // Читаем содержимое ответа для диагностики
+      const responseText = await response.text();
+      console.error('Неверный тип контента. Ответ сервера:', responseText.substring(0, 500));
+
+      if (responseText.includes('<html>') || responseText.includes('<!DOCTYPE')) {
+        throw new Error('Сервер вернул HTML страницу. Возможно, проблема с аутентификацией или маршрутизацией.');
+      }
+
+      throw new Error(`Сервер вернул неверный тип контента: ${contentType}`);
     }
 
     const blob = await response.blob();
 
-    // Проверяем размер blob
     if (blob.size === 0) {
       throw new Error('Получен пустой файл');
     }
+
+    console.log('PDF файл успешно получен, размер:', blob.size, 'байт');
 
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -300,16 +330,10 @@ const downloadPDF = async (reportId: number) => {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
 
-    console.log(`PDF файл успешно скачан. Размер: ${blob.size} байт`);
-  } catch (error: unknown) { // Можно оставить 'error' или явно указать 'error: unknown'
-      console.error('Ошибка при скачивании PDF:', error);
-      if (error instanceof Error) {
-        alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
-      } else {
-        // Если это не объект Error, обработайте как строку или другой тип
-        alert(`Произошла неизвестная ошибка при скачивании PDF отчета: ${String(error)}`);
-      }
-    }
+  } catch (error) {
+    console.error('Детальная ошибка при скачивании PDF:', error);
+    alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
+  }
 };
 
 const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => {
