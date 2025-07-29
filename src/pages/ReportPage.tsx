@@ -22,6 +22,7 @@ const useReport = (reportId: string | undefined) => {
   const [report, setReport] = useState<EnhancedReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<number | null>(null); // Use useRef for the interval ID
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -35,14 +36,57 @@ const useReport = (reportId: string | undefined) => {
       try {
         const response = await getReport(reportId);
         setReport(response.data);
-      } catch (err: any)        {
+
+        // If report is completed or failed, stop polling
+        if (response.data.status === 'completed' || response.data.status === 'failed') {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          setLoading(false); // Stop loading when final status is reached
+        } else {
+            // Keep loading indicator if still processing/queued
+            setLoading(true);
+        }
+
+      } catch (err: any) {
         setError(err.response?.data?.detail || 'Произошла ошибка при загрузке отчета.');
-      } finally {
-        setLoading(false);
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current); // Stop polling on error
+            intervalRef.current = null;
+        }
+        setLoading(false); // Stop loading on error
       }
     };
+
+    // Initial fetch
     fetchReport();
+
+    // Set up polling
+    if (reportId) {
+      // Clear any existing interval to prevent multiple intervals
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      // Poll every 5 seconds (adjust as needed)
+      intervalRef.current = window.setInterval(fetchReport, 5000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [reportId]);
+
+  useEffect(() => {
+      if (report && (report.status === 'completed' || report.status === 'failed')) {
+          setLoading(false);
+      } else if (report) {
+          setLoading(true);
+      }
+  }, [report]);
 
   return { report, loading, error };
 };
