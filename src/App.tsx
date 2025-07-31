@@ -13,6 +13,8 @@ import RegistrationPage from './pages/RegistrationPage';
 import LoginPage from './pages/LoginPage';
 import ConnectionsPage from './pages/ConnectionsPage';
 import ReportPage from './pages/ReportPage'
+import EmailVerificationPage from './pages/EmailVerificationPage'
+import RequestPasswordResetPage from './pages/RequestPasswordResetPage'
 
 function App() {
   return (
@@ -27,6 +29,9 @@ function App() {
             <Route path="charts" element={<ChartsPage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
             <Route path="/reports/:reportId" element={<ReportPage />} />
+            <Route path="/verify-email" element={<EmailVerificationPage />} />
+            <Route path="/request-password-reset" element={<RequestPasswordResetPage />} />
+
           </Route>
         </Route>
 
