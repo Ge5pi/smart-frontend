@@ -62,6 +62,9 @@ const LoginPage = () => {
             <input type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border-2" required />
           </div>
+          <div className="relative text-right">
+              <Link to="/request-password-reset" className="text-sm font-semibold text-blue-600 hover:text-blue-500">Забыли пароль?</Link>
+          </div>
           {error && <p className="text-sm text-center text-red-600 bg-red-100 p-3 rounded-lg">{error}</p>}
           <button type="submit" disabled={isLoading}
             className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold">

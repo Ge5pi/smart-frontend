@@ -25,26 +25,15 @@ const RegistrationPage = () => {
     setIsLoading(true);
     setError(null);
 
-    // --- НАЧАЛО ИСПРАВЛЕНИЙ ---
-
-    // 1. Создаем обычный JavaScript объект вместо FormData.
-    //    Используем ключ 'email', как того требует Pydantic-схема на бэкенде.
     const userData = {
       email: email,
       password: password
     };
 
     try {
-      // 2. Передаем объект userData напрямую.
-      //    Axios автоматически преобразует его в JSON и установит правильный заголовок Content-Type.
-      await api.post('/users/register', userData);
-
-      alert('Регистрация прошла успешно! Теперь вы можете войти.');
-      // Примечание: Убедитесь, что вы используете правильный порт (8000, а не 5643)
-      navigate('/login'); // Перенаправляем на страницу входа
-
-    // --- КОНЕЦ ИСПРАВЛЕНИЙ ---
-
+        await api.post('/users/register', userData);
+        alert('Регистрация прошла успешно! На вашу почту отправлен код подтверждения. Пожалуйста, проверьте почту.');
+        navigate('/verify-email');
     } catch (err: any) {
       if (err.response && err.response.data && err.response.data.detail) {
         setError(err.response.data.detail);
@@ -53,7 +42,7 @@ const RegistrationPage = () => {
       }
       console.error(err);
     } finally {
-      setIsLoading(false); // Этот блок выполнится в любом случае
+      setIsLoading(false);
     }
 };
 

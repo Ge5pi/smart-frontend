@@ -1,16 +1,12 @@
-// api.ts
 import axios from 'axios';
 
-// --- Конфигурация экземпляра Axios ---
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-console.log("🚀 VITE_API_URL:", import.meta.env.VITE_API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true
 });
 
-// Интерцептор для автоматического добавления токена авторизации
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
@@ -112,5 +108,18 @@ export const downloadReportPDF = (reportId: number) => {
     },
   });
 };
+
+export const verifyEmail = (email: string, code: string) => {
+  return api.post('/users/verify-email', { email, code });
+};
+
+export const requestPasswordReset = (email: string) => {
+  return api.post('/users/password-reset/request', { email });
+};
+
+export const resetPassword = (token: string, new_password: string) => {
+  return api.post('/users/password-reset', { token, new_password });
+};
+
 
 export default api;

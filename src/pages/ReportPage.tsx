@@ -281,7 +281,6 @@ const downloadPDF = async (reportId: number) => {
     // Проверяем Content-Type
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/pdf')) {
-      console.error('Неверный тип контента:', contentType);
       throw new Error('Сервер вернул не PDF файл (ожидался application/pdf)');
     }
 
@@ -301,9 +300,7 @@ const downloadPDF = async (reportId: number) => {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
 
-    console.log(`PDF файл успешно скачан. Размер: ${blob.size} байт`);
   } catch (error: unknown) {
-      console.error('Ошибка при скачивании PDF:', error);
       if (error instanceof Error) {
         alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
       } else {
