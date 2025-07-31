@@ -22,6 +22,9 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegistrationPage />} />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
+        <Route path="/request-password-reset" element={<RequestPasswordResetPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
             <Route index element={<DataCleanerPage />} />
@@ -29,9 +32,6 @@ function App() {
             <Route path="charts" element={<ChartsPage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
             <Route path="/reports/:reportId" element={<ReportPage />} />
-            <Route path="/verify-email" element={<EmailVerificationPage />} />
-            <Route path="/request-password-reset" element={<RequestPasswordResetPage />} />
-
           </Route>
         </Route>
 
