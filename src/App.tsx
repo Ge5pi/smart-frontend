@@ -15,6 +15,7 @@ import ConnectionsPage from './pages/ConnectionsPage';
 import ReportPage from './pages/ReportPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
 import RequestPasswordResetPage from './pages/RequestPasswordResetPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function App() {
   return (
