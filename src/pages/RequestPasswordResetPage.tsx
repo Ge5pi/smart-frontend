@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { Mail, Loader } from 'lucide-react';
 
