@@ -11,10 +11,31 @@ interface AnalysisResult {
     insight: string;
     correlations: CorrelationsForTable;
 }
+interface HypothesisResult {
+    hypothesis: string;
+    test: string;
+    columns: string[];
+    p_value: number | null;
+    result: string;
+    explanation: string;
+}
+
+interface ClusterResult {
+    clusters_count?: number;
+    feature_count?: number;
+    sample_count?: number;
+    cluster_centers?: number[][];
+    message?: string;
+    error?: string;
+}
+
 interface SuccessReportResults {
     single_table_insights: Record<string, AnalysisResult>;
     joint_table_insights: Record<string, AnalysisResult>;
     visualizations: Record<string, string[]>;
+    overall_summary?: string;
+    hypotheses?: Record<string, HypothesisResult[]>;
+    clusters?: Record<string, ClusterResult>;
 }
 
 
@@ -226,6 +247,65 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
             >
                 {Object.entries(results.joint_table_insights).map(([joinKey, result]) => (
                     <AnalysisCard key={joinKey} title={joinKey} result={result} icon={<Link className="w-5 h-5 text-gray-500"/>} />
+                ))}
+            </CollapsibleSection>
+        )}
+
+        {results.overall_summary && (
+            <CollapsibleSection
+                title="Общий обзор всей базы"
+                icon={<LineChart className="w-7 h-7 mr-3 text-purple-600" />}
+            >
+                <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100 prose prose-sm max-w-none">
+                    <ReactMarkdown>{results.overall_summary}</ReactMarkdown>
+                </div>
+            </CollapsibleSection>
+        )}
+
+        {results.hypotheses && Object.keys(results.hypotheses).length > 0 && (
+            <CollapsibleSection
+                title="Гипотезы и результаты проверки"
+                icon={<BarChart2 className="w-7 h-7 mr-3 text-indigo-600" />}
+            >
+                {Object.entries(results.hypotheses).map(([table, hyps]) => (
+                    <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
+                        <h3 className="font-mono text-lg text-blue-700 mb-2">{table}</h3>
+                        {hyps.length === 0 && <p className="text-gray-500 text-sm">Нет гипотез для этой таблицы.</p>}
+                        {hyps.map((h, idx) => (
+                            <div key={idx} className="mb-4 border-b pb-2">
+                                <p className="font-semibold">{h.hypothesis}</p>
+                                <p className="text-sm text-gray-600">Тест: {h.test}, Колонки: {h.columns.join(', ')}</p>
+                                <p className={`text-sm font-bold ${h.result === 'подтверждена' ? 'text-green-600' : h.result === 'опровергнута' ? 'text-red-600' : 'text-gray-500'}`}>
+                                    Результат: {h.result} {h.p_value !== null && `(p = ${h.p_value})`}
+                                </p>
+                                {h.explanation && (
+                                    <p className="text-sm text-gray-700 mt-1">{h.explanation}</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </CollapsibleSection>
+        )}
+
+        {results.clusters && Object.keys(results.clusters).length > 0 && (
+            <CollapsibleSection
+                title="Кластеризация данных"
+                icon={<Database className="w-7 h-7 mr-3 text-teal-600" />}
+            >
+                {Object.entries(results.clusters).map(([table, cluster]) => (
+                    <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
+                        <h3 className="font-mono text-lg text-blue-700 mb-2">{table}</h3>
+                        {cluster.error && <p className="text-red-600">{cluster.error}</p>}
+                        {cluster.message && <p className="text-gray-600">{cluster.message}</p>}
+                        {cluster.clusters_count && (
+                            <ul className="text-sm text-gray-700 list-disc pl-5">
+                                <li>Число кластеров: {cluster.clusters_count}</li>
+                                <li>Число признаков: {cluster.feature_count}</li>
+                                <li>Число объектов: {cluster.sample_count}</li>
+                            </ul>
+                        )}
+                    </div>
                 ))}
             </CollapsibleSection>
         )}
