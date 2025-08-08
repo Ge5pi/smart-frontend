@@ -303,7 +303,7 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
                         {cluster.error && <p className="text-red-600">{cluster.error}</p>}
                         {cluster.message && <p className="text-gray-600">{cluster.message}</p>}
 
-                        {cluster.sizes && (
+                        {cluster.sizes && Object.keys(cluster.sizes).length > 0 && (
                             <>
                                 <p className="font-semibold mb-2">Размеры кластеров:</p>
                                 <ul className="list-disc pl-5 text-sm text-gray-700">
@@ -314,14 +314,14 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
                             </>
                         )}
 
-                        {cluster.important_features && (
+                        {cluster.important_features && cluster.important_features.length > 0 && (
                             <>
                                 <p className="font-semibold mt-3 mb-1">Важные признаки:</p>
                                 <p className="text-sm text-gray-700">{cluster.important_features.join(", ")}</p>
                             </>
                         )}
 
-                        {cluster.cluster_profiles && (
+                        {cluster.cluster_profiles && Object.keys(cluster.cluster_profiles).length > 0 && (
                             <>
                                 <p className="font-semibold mt-3 mb-2">Профили кластеров (средние значения признаков):</p>
                                 <div className="overflow-x-auto">
@@ -329,22 +329,26 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-4 py-2 border">Признак</th>
-                                                {Object.keys(cluster.cluster_profiles).map(cid => (
+                                                {Object.keys(cluster.cluster_profiles || {}).map(cid => (
                                                     <th key={cid} className="px-4 py-2 border">Кластер {cid}</th>
                                                 ))}
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {Object.keys(cluster.cluster_profiles[Object.keys(cluster.cluster_profiles)[0]]).map(feature => (
-                                                <tr key={feature}>
-                                                    <td className="px-4 py-2 border">{feature}</td>
-                                                    {Object.keys(cluster.cluster_profiles).map(cid => (
-                                                        <td key={cid} className="px-4 py-2 border">
-                                                            {cluster.cluster_profiles[cid][feature]}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
+                                            {(() => {
+                                                const firstClusterKey = Object.keys(cluster.cluster_profiles || {})[0];
+                                                const firstCluster = firstClusterKey ? cluster.cluster_profiles?.[firstClusterKey] : undefined;
+                                                return Object.keys(firstCluster || {}).map(feature => (
+                                                    <tr key={feature}>
+                                                        <td className="px-4 py-2 border">{feature}</td>
+                                                        {Object.keys(cluster.cluster_profiles || {}).map(cid => (
+                                                            <td key={cid} className="px-4 py-2 border">
+                                                                {cluster.cluster_profiles?.[cid]?.[feature]}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ));
+                                            })()}
                                         </tbody>
                                     </table>
                                 </div>
