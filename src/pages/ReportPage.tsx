@@ -22,9 +22,12 @@ interface HypothesisResult {
 
 interface ClusterResult {
     clusters_count?: number;
-    feature_count?: number;
     sample_count?: number;
-    cluster_centers?: number[][];
+    feature_count?: number;
+    sizes?: Record<string, number>;
+    cluster_profiles?: Record<string, Record<string, number>>;
+    important_features?: string[];
+    gpt_summary?: string;
     message?: string;
     error?: string;
 }
@@ -295,15 +298,66 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
             >
                 {Object.entries(results.clusters).map(([table, cluster]) => (
                     <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
-                        <h3 className="font-mono text-lg text-blue-700 mb-2">{table}</h3>
+                        <h3 className="font-mono text-lg text-blue-700 mb-3">{table}</h3>
+
                         {cluster.error && <p className="text-red-600">{cluster.error}</p>}
                         {cluster.message && <p className="text-gray-600">{cluster.message}</p>}
-                        {cluster.clusters_count && (
-                            <ul className="text-sm text-gray-700 list-disc pl-5">
-                                <li>Число кластеров: {cluster.clusters_count}</li>
-                                <li>Число признаков: {cluster.feature_count}</li>
-                                <li>Число объектов: {cluster.sample_count}</li>
-                            </ul>
+
+                        {cluster.sizes && (
+                            <>
+                                <p className="font-semibold mb-2">Размеры кластеров:</p>
+                                <ul className="list-disc pl-5 text-sm text-gray-700">
+                                    {Object.entries(cluster.sizes).map(([id, size]) => (
+                                        <li key={id}>Кластер {id}: {size} записей</li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
+
+                        {cluster.important_features && (
+                            <>
+                                <p className="font-semibold mt-3 mb-1">Важные признаки:</p>
+                                <p className="text-sm text-gray-700">{cluster.important_features.join(", ")}</p>
+                            </>
+                        )}
+
+                        {cluster.cluster_profiles && (
+                            <>
+                                <p className="font-semibold mt-3 mb-2">Профили кластеров (средние значения признаков):</p>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-sm border border-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-2 border">Признак</th>
+                                                {Object.keys(cluster.cluster_profiles).map(cid => (
+                                                    <th key={cid} className="px-4 py-2 border">Кластер {cid}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {Object.keys(cluster.cluster_profiles[Object.keys(cluster.cluster_profiles)[0]]).map(feature => (
+                                                <tr key={feature}>
+                                                    <td className="px-4 py-2 border">{feature}</td>
+                                                    {Object.keys(cluster.cluster_profiles).map(cid => (
+                                                        <td key={cid} className="px-4 py-2 border">
+                                                            {cluster.cluster_profiles[cid][feature]}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )}
+
+                        {cluster.gpt_summary && (
+                            <>
+                                <p className="font-semibold mt-3 mb-1">Интерпретация кластеров:</p>
+                                <div className="prose prose-sm max-w-none text-gray-800">
+                                    <ReactMarkdown>{cluster.gpt_summary}</ReactMarkdown>
+                                </div>
+                            </>
                         )}
                     </div>
                 ))}
