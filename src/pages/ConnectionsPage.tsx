@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import UsageWarning from '../components/UsageWarning';
 import { startDatabaseAnalysis, getConnections, getUserReports } from '../api';
 import type { DatabaseConnection, Report } from '../api';
 import { Database, Server, AlertCircle, Loader2, History, ChevronDown, Clock, FileText } from 'lucide-react';
-import { AppContext } from '../contexts/AppContext';
 
 const ConnectionsPage: React.FC = () => {
-  const { currentUser } = useContext(AppContext)!;
   const [connectionString, setConnectionString] = useState('');
   const [alias, setAlias] = useState('');
   const [dbType, setDbType] = useState<'postgres' | 'sqlserver'>('postgres');
@@ -91,10 +88,6 @@ const ConnectionsPage: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-      if (currentUser && !currentUser.is_active && currentUser.reports_used >= 1) {
-          setError("Вы исчерпали лимит на создание отчетов. Пожалуйста, перейдите на платный тариф.");
-          return;
-        }
     if (!connectionString.trim() || !alias.trim()) {
       setError('Псевдоним и строка подключения не могут быть пустыми');
       return;
@@ -130,10 +123,6 @@ const ConnectionsPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Анализ базы данных</h1>
-
-        {currentUser && currentUser.reports_used >= 1 && !currentUser.is_active && (
-            <UsageWarning user={currentUser} pageType="reports" />
-        )}
 
         {/* Табы */}
         <div className="flex mb-6 border-b border-gray-200">
