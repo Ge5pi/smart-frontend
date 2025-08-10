@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import {
-  BarChart3,
   BrainCircuit,
   Database,
   Sparkles,
@@ -11,7 +10,6 @@ import {
   FileText,
   ArrowRight,
   PieChart,
-  LineChart
 } from 'lucide-react';
 
 // Компонент-обертка для анимации появления при скролле
