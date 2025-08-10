@@ -20,7 +20,7 @@ const ConnectionsPage: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const isReportLimitReached = user && !user.is_active && user.reports_used >= REPORT_LIMIT;
+  const isReportLimitReached = !!(user && !user.is_active && user.reports_used >= REPORT_LIMIT);
   useEffect(() => {
     const fetchData = async () => {
       try {
