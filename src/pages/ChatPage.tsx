@@ -2,7 +2,7 @@ import { useState, useContext, useEffect, useRef } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { Send, Loader, BrainCircuit } from 'lucide-react';
+import { Send, Loader, BrainCircuit, ShieldAlert } from 'lucide-react';
 import api from '../api';
 
 type ChatMessage = {
@@ -10,8 +10,10 @@ type ChatMessage = {
   content: string;
 };
 
+const MESSAGE_LIMIT = 10;
+
 const ChatPage = () => {
-  const { fileId, sessionId, setSessionId, token } = useContext(AppContext)!;
+  const { fileId, sessionId, setSessionId, token, user } = useContext(AppContext)!;
   const navigate = useNavigate();
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [currentQuery, setCurrentQuery] = useState("");
@@ -22,6 +24,8 @@ const ChatPage = () => {
   const [activeSessionFileId, setActiveSessionFileId] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const isChatLimitReached = user && !user.is_active && user.messages_used >= MESSAGE_LIMIT;
+
   useEffect(() => {
     if (!fileId) {
       alert("Пожалуйста, сначала выберите файл на главной странице.");
@@ -58,7 +62,7 @@ const ChatPage = () => {
   }, [chatHistory]);
 
   const handleSendQuery = async () => {
-    if (!currentQuery.trim() || !sessionId || isReplying || !token) return;
+    if (isChatLimitReached || !currentQuery.trim() || !sessionId || isReplying || !token) return;
 
     const userMessage: ChatMessage = { role: 'user', content: currentQuery };
     setChatHistory(prev => [...prev, userMessage]);
@@ -124,18 +128,31 @@ const ChatPage = () => {
                   <div ref={chatEndRef} />
                 </div>
                 <div className="flex-shrink-0 pt-4 border-t border-gray-200/80">
-                  <div className="relative">
-                    <input
-                      type="text" value={currentQuery} onChange={(e) => setCurrentQuery(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendQuery()}
-                      placeholder={sessionId ? "Например: 'покажи топ 5 строк по зарплате'" : "Ожидание начала сессии..."}
-                      className="w-full pl-4 pr-12 py-3 rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                      disabled={!sessionId || isReplying}
-                    />
-                    <button onClick={handleSendQuery} disabled={!sessionId || isReplying || !currentQuery.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors">
-                      <Send className="w-5 h-5" />
-                    </button>
-                  </div>
+                  {isChatLimitReached ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center text-yellow-800">
+                      <ShieldAlert className="w-6 h-6 mr-3 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">Лимит сообщений исчерпан</p>
+                        <p className="text-sm">Вы использовали все бесплатные сообщения ({user?.messages_used} из {MESSAGE_LIMIT}). Чтобы продолжить, оформите подписку.</p>
+                        <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                          Оформить подписку
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text" value={currentQuery} onChange={(e) => setCurrentQuery(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendQuery()}
+                        placeholder={sessionId ? "Например: 'покажи топ 5 строк по зарплате'" : "Ожидание начала сессии..."}
+                        className="w-full pl-4 pr-12 py-3 rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        disabled={!sessionId || isReplying}
+                      />
+                      <button onClick={handleSendQuery} disabled={!sessionId || isReplying || !currentQuery.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors">
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
             </div>
             {error && <div className="p-4 border-t border-red-200 bg-red-50 text-red-700">{error}</div>}

@@ -44,6 +44,16 @@ interface ErrorResults {
   details?: string;
 }
 
+// Тип для данных пользователя, включая счетчики
+export interface User {
+  id: number;
+  email: string;
+  is_active: boolean; // true, если есть подписка
+  is_verified: boolean;
+  messages_used: number;
+  reports_used: number;
+}
+
 export interface EnhancedReport {
   id: number;
   status: string;
@@ -119,6 +129,10 @@ export const requestPasswordReset = (email: string) => {
 
 export const resetPassword = (token: string, new_password: string) => {
   return api.post('/users/password-reset', { token, new_password });
+};
+
+export const getMe = () => {
+  return api.get<User>('/users/me');
 };
 
 

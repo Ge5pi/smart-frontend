@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import api from '../api';
 
 type ColumnAnalysis = {
   column: string;
@@ -12,6 +12,9 @@ type ColumnAnalysis = {
 
 type User = {
     email: string;
+    is_active: boolean;
+    messages_used: number;
+    reports_used: number;
 };
 
 
@@ -57,34 +60,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [userFiles, setUserFiles] = useState<any[]>([]);
 
   useEffect(() => {
-        const storedToken = localStorage.getItem('authToken');
-        if (storedToken) {
-            try {
-                const decoded: any = jwtDecode(storedToken);
-                // Проверяем срок годности токена
-                if (decoded.exp * 1000 > Date.now()) {
-                    setToken(storedToken);
-                    setUser({ email: decoded.sub });
-                } else {
-                    localStorage.removeItem('authToken'); // Удаляем просроченный токен
-                }
-            } catch (error) {
-                console.error("Invalid token found in localStorage", error);
-                localStorage.removeItem('authToken');
-            }
-        }
-        setIsAuthCheckComplete(true);
+    const storedToken = localStorage.getItem('authToken');
+    if (storedToken) {
+      setToken(storedToken);
+    }
+    setIsAuthCheckComplete(true);
   }, []);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (token) {
+        try {
+          const response = await api.get('/users/me');
+          setUser(response.data);
+        } catch (error) {
+          console.error("Не удалось получить данные пользователя. Токен может быть недействителен.", error);
+          logout();
+        }
+      }
+    };
+
+    fetchUser();
+  }, [token]);
 
   const login = (newToken: string) => {
         localStorage.setItem('authToken', newToken);
         setToken(newToken);
-        try {
-            const decoded: any = jwtDecode(newToken);
-            setUser({ email: decoded.sub });
-        } catch (error) {
-            console.error("Failed to decode token", error);
-        }
   };
 
   const logout = () => {

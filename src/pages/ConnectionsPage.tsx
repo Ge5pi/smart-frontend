@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startDatabaseAnalysis, getConnections, getUserReports } from '../api';
 import type { DatabaseConnection, Report } from '../api';
-import { Database, Server, AlertCircle, Loader2, History, ChevronDown, Clock, FileText } from 'lucide-react';
+import { Database, Server, AlertCircle, Loader2, History, ChevronDown, Clock, FileText, ShieldAlert } from 'lucide-react';
+import { AppContext } from '../contexts/AppContext';
+
+const REPORT_LIMIT = 1;
 
 const ConnectionsPage: React.FC = () => {
+  const { user } = useContext(AppContext)!;
   const [connectionString, setConnectionString] = useState('');
   const [alias, setAlias] = useState('');
   const [dbType, setDbType] = useState<'postgres' | 'sqlserver'>('postgres');
@@ -16,6 +20,7 @@ const ConnectionsPage: React.FC = () => {
 
   const navigate = useNavigate();
 
+  const isReportLimitReached = user && !user.is_active && user.reports_used >= REPORT_LIMIT;
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -92,6 +97,10 @@ const ConnectionsPage: React.FC = () => {
       setError('Псевдоним и строка подключения не могут быть пустыми');
       return;
     }
+    if (isReportLimitReached) {
+        setError('Достигнут лимит на создание отчетов. Оформите подписку, чтобы продолжить.');
+        return;
+    }
 
     setLoading(true);
     setError(null);
@@ -156,6 +165,19 @@ const ConnectionsPage: React.FC = () => {
             <p className="text-gray-600 mb-6">
               Введите данные для подключения или выберите сохраненное.
             </p>
+
+            {isReportLimitReached && (
+              <div className="p-4 mb-6 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center text-yellow-800">
+                <ShieldAlert className="w-6 h-6 mr-3 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">Лимит отчетов исчерпан</p>
+                  <p className="text-sm">Вы использовали бесплатный отчет ({user?.reports_used} из {REPORT_LIMIT}). Чтобы создавать новые, оформите подписку.</p>
+                  <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                    Оформить подписку
+                  </button>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
@@ -251,7 +273,7 @@ const ConnectionsPage: React.FC = () => {
             {/* Кнопка анализа */}
             <button
               onClick={handleAnalyze}
-              disabled={loading || !connectionString.trim() || !alias.trim()}
+              disabled={loading || !connectionString.trim() || !alias.trim() || isReportLimitReached}
               className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             >
               {loading ? (
