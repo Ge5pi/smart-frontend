@@ -1,240 +1,192 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { motion, useInView } from 'framer-motion';
+import { useRef } from 'react';
 import {
   BarChart3,
   BrainCircuit,
   Database,
   Sparkles,
   ShieldCheck,
-  LineChart,
-  PieChart,
-  ScatterChart,
-  CheckCircle,
-  ArrowRight,
   Zap,
   FileText,
+  ArrowRight,
+  PieChart,
+  LineChart
 } from 'lucide-react';
 
-const FeatureCard = ({ icon: Icon, title, desc }: { icon: any; title: string; desc: string }) => (
-  <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+// Компонент-обертка для анимации появления при скролле
+const AnimatedSection = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
+
+  return (
+    <motion.section
+      ref={ref}
+      className={className}
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
+      transition={{ duration: 0.8, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.section>
+  );
+};
+
+// Карточка для Bento Grid
+const FeatureCard = ({ icon: Icon, title, desc, className = '' }: { icon: any; title: string; desc: string; className?: string }) => (
+  <motion.div
+    whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
+    className={`p-6 bg-white/50 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-lg transition-shadow cursor-pointer ${className}`}
+  >
+    <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
       <Icon size={24} />
     </div>
     <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-    <p className="text-gray-600">{desc}</p>
-  </div>
+    <p className="text-gray-600 leading-relaxed">{desc}</p>
+  </motion.div>
 );
+
 
 const Step = ({ num, title, desc }: { num: string; title: string; desc: string }) => (
   <div className="relative p-6 bg-white rounded-2xl border border-gray-200">
-    <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-md">
+    <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
       {num}
     </div>
-    <h4 className="text-lg font-semibold text-gray-900 mb-2">{title}</h4>
+    <h3 className="font-bold text-xl text-gray-900 mt-6 mb-2">{title}</h3>
     <p className="text-gray-600">{desc}</p>
-  </div>
-);
-
-const PreviewCard = ({ title, desc, children }: any) => (
-  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-    <div className="p-5 border-b border-gray-100">
-      <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-      <p className="text-gray-600 text-sm mt-1">{desc}</p>
-    </div>
-    <div className="p-4 bg-gray-50">{children}</div>
   </div>
 );
 
 const Testimonial = ({ quote, author, role }: { quote: string; author: string; role: string }) => (
-  <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
-    <div className="text-gray-800 italic">“{quote}”</div>
-    <div className="mt-4 text-sm text-gray-600">
-      <span className="font-semibold text-gray-900">{author}</span> - {role}
-    </div>
+  <div className="p-6 bg-white rounded-2xl border border-gray-200 text-center flex flex-col items-center">
+    <Sparkles className="text-blue-500 mb-4" />
+    <blockquote className="text-gray-700 italic mb-4">"{quote}"</blockquote>
+    <p className="font-semibold text-gray-900">{author}</p>
+    <p className="text-sm text-gray-500">{role}</p>
   </div>
 );
 
-const LandingPage = () => {
-  const navigate = useNavigate();
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* HERO */}
-      <header className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 pt-20 pb-16">
-          <div className="grid md:grid-cols-2 gap-10 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100 mb-4">
-                <Sparkles size={16} />
-                Аналитика данных за минуты
-              </div>
-              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
-                Загружайте данные. Стройте графики. Задавайте вопросы AI.
-              </h1>
-              <p className="mt-4 text-lg text-gray-600">
-                Единая платформа для загрузки данных, очистки, визуализации и интеллектуального
-                анализа. Поддержка CSV/Excel и подключений к базам (PostgreSQL, SQL Server).
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <button
-                  onClick={() => navigate('/register')}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Начать бесплатно
-                  <ArrowRight size={18} />
-                </button>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-800 font-semibold hover:border-gray-400"
-                >
-                  Войти
-                </Link>
-              </div>
-              <div className="mt-6 flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="text-green-600" size={18} />
-                  Безопасность данных
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="text-yellow-500" size={18} />
-                  Быстрые отчеты
-                </div>
-              </div>
-            </div>
+    <div className="bg-gray-50 text-gray-800">
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center text-center px-6 overflow-hidden">
+        <div className="aurora-background"></div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+          className="z-10"
+        >
+          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-4">
+            Превратите данные <br /> в{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">
+              решения
+            </span>
+          </h1>
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 mb-8">
+            Наша AI-платформа анализирует ваши данные, находит скрытые инсайты и помогает принимать верные решения для роста вашего бизнеса.
+          </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
+            className="flex gap-4 justify-center"
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/register"
+                className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-colors"
+              >
+                Попробовать бесплатно <ArrowRight className="inline ml-2" size={16} />
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/login"
+                className="px-8 py-3 rounded-xl bg-white/80 backdrop-blur-md text-gray-800 font-semibold shadow-md hover:bg-white transition-colors"
+              >
+                Демо
+              </Link>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      </section>
 
-            {/* Визуальный мокап */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <BarChart3 />
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Data Insight</div>
-                  <div className="text-gray-500 text-sm">Визуализация и AI-анализ</div>
-                </div>
-              </div>
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                <div className="h-24 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                  <LineChart className="opacity-80" />
-                </div>
-                <div className="h-24 bg-purple-50 rounded-lg border border-purple-100 flex items-center justify-center text-purple-600 font-semibold">
-                  <PieChart className="opacity-80" />
-                </div>
-                <div className="h-24 bg-teal-50 rounded-lg border border-teal-100 flex items-center justify-center text-teal-600 font-semibold">
-                  <ScatterChart className="opacity-80" />
-                </div>
-              </div>
-              <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="text-sm text-gray-700 font-medium mb-2">AI-диалог</div>
-                <div className="rounded-lg border border-gray-200 bg-white p-3 text-gray-600">
-                  Какой столбец сильнее всего влияет на зарплату?
-                </div>
-                <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 mt-2 text-gray-800">
-                  Модель построила корреляции. Наибольшее влияние у «Опыт_лет» (r=0.62).
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ПРЕИМУЩЕСТВА */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Что вы получите</h2>
-        <div className="grid md:grid-cols-4 gap-6">
+      {/* Features Section (Bento Grid) */}
+      <AnimatedSection className="max-w-7xl mx-auto px-6 py-20">
+        <h2 className="text-4xl font-bold text-center text-gray-900 mb-4">Все, что нужно для аналитики</h2>
+        <p className="text-lg text-gray-600 text-center mb-12 max-w-3xl mx-auto">От сбора данных до автоматических отчетов — наша платформа покрывает весь цикл работы с данными.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FeatureCard
-            icon={BarChart3}
-            title="Быстрые визуализации"
-            desc="Гистограммы, линейные, круговые, scatter, bubble и boxplot — в пару кликов."
+            icon={Database}
+            title="Интеграция в 1 клик"
+            desc="Подключайте базы данных, CRM и другие источники без написания кода."
+            className="md:col-span-1"
           />
           <FeatureCard
             icon={BrainCircuit}
-            title="AI-агент"
-            desc="Задавайте вопросы на естественном языке. Получайте объяснения, гипотезы и инсайты."
+            title="AI-ассистент"
+            desc="Задавайте вопросы на естественном языке и получайте развернутые ответы с графиками."
+            className="md:col-span-2"
           />
           <FeatureCard
-            icon={Database}
-            title="Подключение к БД"
-            desc="Поддержка PostgreSQL и SQL Server. Запускайте анализ и получайте отчеты."
+            icon={PieChart}
+            title="Автоматическая визуализация"
+            desc="Платформа сама подбирает лучшие типы графиков для ваших данных."
+            className="md:col-span-2"
           />
           <FeatureCard
-            icon={CheckCircle}
-            title="Очистка данных"
-            desc="Заполнение пропусков, поиск выбросов, кодирование категорий. Готовьте датасет к анализу."
+            icon={Zap}
+            title="Мгновенные инсайты"
+            desc="AI находит аномалии, тренды и корреляции, которые вы могли упустить."
+            className="md:col-span-1"
+          />
+           <FeatureCard
+            icon={FileText}
+            title="Готовые отчеты"
+            desc="Создавайте кастомизируемые дашборды и делитесь ими с командой."
+            className="md:col-span-1"
+          />
+           <FeatureCard
+            icon={ShieldCheck}
+            title="Безопасность и контроль"
+            desc="Ваши данные надежно защищены и доступны только вам."
+            className="md:col-span-2"
           />
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* ПРЕВЬЮ ФУНКЦИЙ */}
-      <section className="max-w-7xl mx-auto px-6 pb-16">
-        <div className="grid md:grid-cols-3 gap-6">
-          <PreviewCard title="Визуализация" desc="Интерактивные графики на Chart.js с аккуратными пресетами.">
-            <div className="h-44 bg-white rounded-xl border border-gray-200 flex items-center justify-center text-gray-500">
-              Превью графика (Line/Pie/Scatter)
-            </div>
-            <div className="mt-3 flex gap-2">
-              <span className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm">Histogram</span>
-              <span className="px-3 py-1 rounded-lg bg-purple-50 text-purple-700 text-sm">Pie</span>
-              <span className="px-3 py-1 rounded-lg bg-teal-50 text-teal-700 text-sm">Scatter</span>
-            </div>
-          </PreviewCard>
-
-          <PreviewCard title="AI-диалог" desc="Контекстная сессия по конкретному файлу: объяснения, выводы, шаги.">
-            <div className="space-y-2">
-              <div className="rounded-lg border p-3 text-gray-600">Покажи топ-5 строк по зарплате</div>
-              <div className="rounded-lg border bg-blue-50 p-3 text-gray-800">
-                Отобраны строки. Средняя зарплата в выборке: 185k. Хотите построить график распределения?
-              </div>
-            </div>
-          </PreviewCard>
-
-          <PreviewCard title="Анализ БД" desc="Старт задачи, статус отчета, просмотр результатов.">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <FileText />
-              </div>
-              <div>
-                <div className="font-semibold text-gray-900">Отчет #1294</div>
-                <div className="text-gray-500 text-sm">Завершен - 12 мин назад</div>
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-              <div className="p-2 rounded-lg bg-green-50 text-green-700">Корреляции</div>
-              <div className="p-2 rounded-lg bg-yellow-50 text-yellow-700">Гипотезы</div>
-              <div className="p-2 rounded-lg bg-blue-50 text-blue-700">Кластеры</div>
-            </div>
-          </PreviewCard>
-        </div>
-      </section>
-
-      {/* КАК ЭТО РАБОТАЕТ */}
-      <section className="max-w-7xl mx-auto px-6 pb-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Как это работает</h2>
-        <div className="grid md:grid-cols-3 gap-6">
+      {/* How It Works Section */}
+      <AnimatedSection className="max-w-7xl mx-auto px-6 py-20 bg-blue-50/50 rounded-3xl">
+        <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Начать проще простого</h2>
+        <div className="grid md:grid-cols-3 gap-8">
           <Step
             num="1"
-            title="Загрузите файл или подключитесь к БД"
-            desc="CSV/Excel или строка подключения PostgreSQL/SQL Server — секунды на старт."
+            title="Подключите данные"
+            desc="Загрузите файл или подключите вашу базу данных. Это займет не больше 5 минут."
           />
           <Step
             num="2"
-            title="Очистите и визуализируйте"
-            desc="Заполните пропуски, найдите выбросы, закодируйте категории, постройте графики."
+            title="Задайте вопрос"
+            desc="Спросите нашего AI-ассистента, например: 'Какие каналы принесли больше всего прибыли в прошлом квартале?'"
           />
           <Step
             num="3"
-            title="Спросите AI"
-            desc="Получите пояснения, гипотезы, отчеты и готовые инсайты — в диалоге."
+            title="Получите инсайт"
+            desc="Мгновенно получите готовый отчет с визуализациями и текстовым объяснением."
           />
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* СОЦДОКАЗАТЕЛЬСТВО */}
-      <section className="max-w-7xl mx-auto px-6 pb-16">
+      {/* Testimonials Section */}
+      <AnimatedSection className="max-w-7xl mx-auto px-6 py-20">
+        <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Нам доверяют профессионалы</h2>
         <div className="grid md:grid-cols-3 gap-6">
           <Testimonial
-            quote="За вечер собрали отчет по продажам и нашли три гипотезы, которые увеличили конверсию."
-            author="Анна"
-            role="Продуктовый аналитик"
+            quote="Платформа сэкономила нам десятки часов ручной работы по подготовке отчетов."
+            author="Алексей"
+            role="Product Manager"
           />
           <Testimonial
             quote="Подключил продовую базу и получил читаемый отчет с корреляциями и кластерами."
@@ -247,33 +199,31 @@ const LandingPage = () => {
             role="Маркетолог"
           />
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* CTA */}
+      {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-6 pb-20">
-        <div className="p-8 rounded-2xl border border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col md:flex-row items-center justify-between gap-6">
+         <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="p-10 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 flex flex-col md:flex-row items-center justify-between gap-6 text-white"
+        >
           <div>
-            <h3 className="text-2xl font-bold text-gray-900">Готовы начать?</h3>
-            <p className="text-gray-700 mt-1">Создайте аккаунт и получите первые инсайты уже сегодня.</p>
+            <h3 className="text-3xl font-bold">Готовы начать?</h3>
+            <p className="text-blue-100 mt-2">Создайте аккаунт и получите первые инсайты уже сегодня. Бесплатно.</p>
           </div>
-          <div className="flex gap-3">
-            <Link
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+             <Link
               to="/register"
-              className="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
+              className="px-8 py-4 rounded-xl bg-white text-blue-600 font-bold shadow-lg hover:bg-gray-100 transition-colors shrink-0"
             >
               Зарегистрироваться
             </Link>
-            <Link
-              to="/login"
-              className="px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-800 font-semibold hover:border-gray-400"
-            >
-              Войти
-            </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
     </div>
   );
-};
-
-export default LandingPage;
+}

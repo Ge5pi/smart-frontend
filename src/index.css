@@ -26,3 +26,52 @@
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #64748b, #475569);
 }
+
+body {
+  background-color: #f8fafc; /* Светло-серый фон для всей страницы */
+}
+
+.aurora-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.aurora-background::before,
+.aurora-background::after {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  opacity: 0.2;
+  filter: blur(100px);
+  z-index: -1;
+  animation: pulse 15s infinite alternate;
+}
+
+.aurora-background::before {
+  background-color: #818cf8; /* indigo */
+  top: -200px;
+  left: -200px;
+}
+
+.aurora-background::after {
+  background-color: #60a5fa; /* blue */
+  bottom: -200px;
+  right: -200px;
+  animation-delay: -5s;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.9) rotate(0deg);
+  }
+  100% {
+    transform: scale(1.2) rotate(20deg);
+  }
+}
