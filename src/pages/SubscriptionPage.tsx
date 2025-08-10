@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../contexts/AppContext';
 import api from '../api';
-import { Loader2, Send, Star, CheckCircle } from 'lucide-react';
+import { Loader2, Star, CheckCircle } from 'lucide-react';
 
 const SubscriptionPage: React.FC = () => {
   const { user } = useContext(AppContext)!;

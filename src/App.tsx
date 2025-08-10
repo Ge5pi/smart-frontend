@@ -17,6 +17,7 @@ import EmailVerificationPage from './pages/EmailVerificationPage'
 import RequestPasswordResetPage from './pages/RequestPasswordResetPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import LandingPage from './pages/LandingPage'
+import SubscriptionPage from './pages/SubscriptionPage'
 
 function App() {
   return (
