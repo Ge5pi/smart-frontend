@@ -6,13 +6,11 @@ import {
   BrainCircuit,
   Database,
   Sparkles,
-  ShieldCheck,
   LineChart,
   PieChart,
   ScatterChart,
   CheckCircle,
   ArrowRight,
-  Zap,
   FileText,
 } from 'lucide-react';
 
