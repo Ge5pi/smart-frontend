@@ -1,5 +1,4 @@
-import { createContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode } from 'react';
 import api from '../api';
 
 type ColumnAnalysis = {
@@ -16,8 +15,6 @@ type User = {
     messages_used: number;
     reports_used: number;
 };
-
-
 
 type AppContextType = {
   file: File | null;
@@ -49,7 +46,7 @@ export const AppContext = createContext<AppContextType | null>(null);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [file, setFile] = useState<File | null>(null);
   const [fileId, setFileId] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null); // Эта строка сохранена
   const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false);
   const [columns, setColumns] = useState<ColumnAnalysis[]>([]);
   const [preview, setPreview] = useState<any[]>([]);
@@ -93,7 +90,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setToken(null);
         setUser(null);
         setFileId(null);
-        setSessionId(null);
+        setSessionId(null); // Эта строка сохранена
         setColumns([]);
         setPreview([]);
     };
@@ -102,7 +99,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const resetState = () => {
     setFile(null);
     setFileId(null);
-    setSessionId(null);
+    setSessionId(null); // Эта строка сохранена
     setColumns([]);
     setPreview([]);
     setError(null);
@@ -111,7 +108,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     file, setFile,
     fileId, setFileId,
-    sessionId, setSessionId,
+    sessionId, setSessionId, // Эта строка сохранена
     columns, setColumns,
     preview, setPreview,
     error, setError,

@@ -1,6 +1,6 @@
 import { useState, useContext, useEffect, useRef } from 'react';
 import { AppContext } from '../contexts/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom'; // Импортируем useParams
 import ReactMarkdown from 'react-markdown';
 import { Send, Loader, BrainCircuit, ShieldAlert } from 'lucide-react';
 import api from '../api';
@@ -10,7 +10,7 @@ type ChatMessage = {
   content: string;
 };
 
-// Тип для ответа от API с историей
+// Тип для сообщений, приходящих от API
 type ApiChatMessage = {
   id: number;
   session_id: string;
@@ -22,66 +22,66 @@ type ApiChatMessage = {
 const MESSAGE_LIMIT = 10;
 
 const ChatPage = () => {
-  const { fileId, sessionId, setSessionId, token, user } = useContext(AppContext)!;
+  // Используем хук useParams для получения sessionId из URL (например, /chat/xxxx-xxxx-xxxx)
+  const { sessionId } = useParams<{ sessionId: string }>();
+  // Контекст используется для получения данных о пользователе и токене
+  const { token, user } = useContext(AppContext)!;
   const navigate = useNavigate();
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [currentQuery, setCurrentQuery] = useState("");
   const [isReplying, setIsReplying] = useState(false);
-  const [isSessionLoading, setIsSessionLoading] = useState(false);
+  // Переименовали isSessionLoading в isHistoryLoading для ясности
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Эти состояния сохранены из оригинального файла, хотя и не используются в новой логике
   const [activeSessionFileId, setActiveSessionFileId] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isChatLimitReached = user && !user.is_active && user.messages_used >= MESSAGE_LIMIT;
 
+  // Этот useEffect теперь отвечает за загрузку истории конкретного чата
   useEffect(() => {
-    if (!fileId) {
-      alert("Пожалуйста, сначала выберите файл на главной странице.");
+    // Если sessionId не определён в URL, отправляем пользователя на главную
+    if (!sessionId) {
+      alert("ID сессии не указан. Пожалуйста, выберите чат из списка.");
       navigate('/');
       return;
     }
-    // Запускаем только если изменился ID файла, чтобы не перезагружать сессию постоянно
-    if (token && fileId && (fileId !== activeSessionFileId)) {
-      setIsSessionLoading(true);
-      setError(null);
-      setChatHistory([]); // Очищаем историю от предыдущего файла
 
-      const sessionFormData = new FormData();
-      sessionFormData.append("file_id", fileId);
+    if (token) {
+        setIsHistoryLoading(true);
+        setError(null);
 
-      // Используем новый эндпоинт для получения/создания сессии
-      api.post("/sessions/get-or-create", sessionFormData)
-        .then(res => {
-          const { session_id, history } = res.data;
-          setSessionId(session_id);
-          setActiveSessionFileId(fileId);
-          // Преобразуем историю из API в формат для стейта
-          const formattedHistory: ChatMessage[] = history.map((msg: ApiChatMessage) => ({
-              role: msg.role,
-              content: msg.content
-          }));
-          setChatHistory(formattedHistory);
-        })
-        .catch(err => {
-            const message = err.response?.data?.detail || "Не удалось запустить или загрузить сессию. Пожалуйста, попробуйте вернуться на главную страницу и выбрать файл заново.";
-            setError(message);
-            console.error("Ошибка старта/загрузки сессии", err);
-            setSessionId(null);
-            setActiveSessionFileId(null);
-        })
-        .finally(() => setIsSessionLoading(false));
+        // Запрашиваем историю по ID сессии
+        api.get(`/sessions/${sessionId}/history`)
+            .then(res => {
+                const history: ApiChatMessage[] = res.data.history;
+                // Форматируем данные из API в состояние, используемое для рендеринга
+                const formattedHistory: ChatMessage[] = history.map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+                setChatHistory(formattedHistory);
+            })
+            .catch(err => {
+                const message = err.response?.data?.detail || "Не удалось загрузить историю чата. Возможно, у вас нет доступа к этой сессии.";
+                setError(message);
+                console.error("Ошибка загрузки истории чата", err);
+            })
+            .finally(() => setIsHistoryLoading(false));
     }
-  }, [fileId, token, activeSessionFileId, navigate, setSessionId]); // Убрали sessionId из зависимостей
+  }, [sessionId, token, navigate]); // Эффект перезапускается при смене sessionId
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
   const handleSendQuery = async () => {
+    // Проверяем, что ID сессии есть, перед отправкой
     if (isChatLimitReached || !currentQuery.trim() || !sessionId || isReplying || !token) return;
 
     const userMessage: ChatMessage = { role: 'user', content: currentQuery };
-    // Оптимистичное обновление UI
     setChatHistory(prev => [...prev, userMessage]);
     const queryToSend = currentQuery;
     setCurrentQuery("");
@@ -89,18 +89,17 @@ const ChatPage = () => {
     setError(null);
 
     const formData = new FormData();
-    formData.append("session_id", sessionId);
+    formData.append("session_id", sessionId); // Используем ID из URL
     formData.append("query", queryToSend);
 
     try {
       const res = await api.post("/sessions/ask", formData);
       const assistantMessage: ChatMessage = { role: 'assistant', content: res.data.answer };
-      // Добавляем ответ ассистента в историю
       setChatHistory(prev => [...prev, assistantMessage]);
     } catch (err: any) {
         const message = err.response?.data?.detail || "Произошла ошибка при обработке вашего запроса.";
         setError(message);
-        // Откатываем оптимистичное обновление в случае ошибки
+        // В случае ошибки, убираем оптимистично добавленное сообщение пользователя
         setChatHistory(prev => prev.slice(0, -1));
         console.error(err);
     } finally {
@@ -108,8 +107,15 @@ const ChatPage = () => {
     }
   };
 
-  if (isSessionLoading) {
-    return <div className="flex justify-center items-center h-64 text-lg font-medium text-gray-600"><Loader className="animate-spin mr-4" /> Загружаем сессию и историю чата...</div>;
+  // Рендеринг состояния загрузки
+  if (isHistoryLoading) {
+    return <div className="flex justify-center items-center h-64 text-lg font-medium text-gray-600"><Loader className="animate-spin mr-4" /> Загружаем историю диалога...</div>;
+  }
+
+  // Оригинальная проверка на fileId/sessionId больше не нужна в таком виде,
+  // так как загрузка зависит от isHistoryLoading
+  if (!sessionId) {
+      return <div className="flex justify-center items-center h-64 text-lg font-medium text-gray-600">Неверный ID сессии.</div>;
   }
 
   return (
@@ -152,7 +158,7 @@ const ChatPage = () => {
                         <p className="font-semibold">Лимит сообщений исчерпан</p>
                         <p className="text-sm">Вы использовали все бесплатные сообщения ({user?.messages_used} из {MESSAGE_LIMIT}). Чтобы продолжить, оформите подписку.</p>
                         <button
-                          onClick={() => navigate('/subscribe')} // 3. Измените обработчик
+                          onClick={() => navigate('/subscribe')}
                           className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
                             Оформить подписку
                         </button>
@@ -163,11 +169,11 @@ const ChatPage = () => {
                       <input
                         type="text" value={currentQuery} onChange={(e) => setCurrentQuery(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendQuery()}
-                        placeholder={sessionId ? "Например: 'покажи топ 5 строк по зарплате'" : "Ожидание начала сессии..."}
+                        placeholder={sessionId ? "Например: 'покажи топ 5 строк по зарплате'" : "Загрузка сессии..."}
                         className="w-full pl-4 pr-12 py-3 rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                        disabled={!sessionId || isReplying}
+                        disabled={!sessionId || isReplying || isHistoryLoading}
                       />
-                      <button onClick={handleSendQuery} disabled={!sessionId || isReplying || !currentQuery.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors">
+                      <button onClick={handleSendQuery} disabled={!sessionId || isReplying || !currentQuery.trim() || isHistoryLoading} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 transition-colors">
                         <Send className="w-5 h-5" />
                       </button>
                     </div>
