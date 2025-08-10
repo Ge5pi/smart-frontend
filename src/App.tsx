@@ -35,6 +35,7 @@ function App() {
             <Route path="charts" element={<ChartsPage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
             <Route path="/reports/:reportId" element={<ReportPage />} />
+            <Route path="/subscribe" element={<SubscriptionPage />} />
           </Route>
         </Route>
 

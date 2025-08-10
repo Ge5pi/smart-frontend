@@ -20,7 +20,6 @@ const ChatPage = () => {
   const [isReplying, setIsReplying] = useState(false);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [activeSessionFileId, setActiveSessionFileId] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -134,8 +133,10 @@ const ChatPage = () => {
                       <div>
                         <p className="font-semibold">Лимит сообщений исчерпан</p>
                         <p className="text-sm">Вы использовали все бесплатные сообщения ({user?.messages_used} из {MESSAGE_LIMIT}). Чтобы продолжить, оформите подписку.</p>
-                        <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
-                          Оформить подписку
+                        <button
+                          onClick={() => navigate('/subscribe')} // 3. Измените обработчик
+                          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                            Оформить подписку
                         </button>
                       </div>
                     </div>

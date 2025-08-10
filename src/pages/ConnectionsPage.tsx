@@ -172,9 +172,11 @@ const ConnectionsPage: React.FC = () => {
                 <div>
                   <p className="font-semibold">Лимит отчетов исчерпан</p>
                   <p className="text-sm">Вы использовали бесплатный отчет ({user?.reports_used} из {REPORT_LIMIT}). Чтобы создавать новые, оформите подписку.</p>
-                  <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
-                    Оформить подписку
-                  </button>
+                  <button
+                          onClick={() => navigate('/subscribe')}
+                          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
+                            Оформить подписку
+                        </button>
                 </div>
               </div>
             )}
