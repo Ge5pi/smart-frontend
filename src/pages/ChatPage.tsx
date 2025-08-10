@@ -46,7 +46,7 @@ const ChatPage = () => {
     // Если sessionId не определён в URL, отправляем пользователя на главную
     if (!sessionId) {
       alert("ID сессии не указан. Пожалуйста, выберите чат из списка.");
-      navigate('/');
+      navigate('/main');
       return;
     }
 

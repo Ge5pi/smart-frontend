@@ -316,7 +316,8 @@ const DataCleanerPage = () => {
                             <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                                 <h3 className="font-semibold text-indigo-800">Файл "{file?.name}" готов к анализу!</h3>
                                 <p className="text-indigo-700 mt-1">Теперь вы можете использовать инструменты ниже или перейти к диалогу с AI-агентом.</p>
-                                <Link to="/chat" className="mt-3 inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                                {/* ИЗМЕНЕНИЕ: Ссылка теперь ведет на страницу выбора сессий с указанием ID файла */}
+                                <Link to={`/files/${fileId}/sessions`} className="mt-3 inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
                                     Перейти к AI Агенту →
                                 </Link>
                             </div>

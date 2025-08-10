@@ -18,7 +18,7 @@ import RequestPasswordResetPage from './pages/RequestPasswordResetPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import LandingPage from './pages/LandingPage'
 import SubscriptionPage from './pages/SubscriptionPage'
-
+import SessionListPage from './pages/SessionListPage';
 function App() {
   return (
     <AppProvider>
@@ -32,7 +32,8 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
             <Route path="/main" element={<DataCleanerPage />} />
-            <Route path="chat" element={<ChatPage />} />
+            <Route path="/files/:fileId/sessions" element={<SessionListPage />} />
+            <Route path="/chat/:sessionId" element={<ChatPage />} />
             <Route path="charts" element={<ChartsPage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
             <Route path="/reports/:reportId" element={<ReportPage />} />
