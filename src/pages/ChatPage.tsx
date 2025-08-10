@@ -34,8 +34,9 @@ const ChatPage = () => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Эти состояния сохранены из оригинального файла, хотя и не используются в новой логике
-  const [activeSessionFileId, setActiveSessionFileId] = useState<string | null>(null);
+  // Эти состояния сохранены из оригинального файла, но больше не используются в новой логике
+  // и закомментированы, чтобы избежать ошибок компиляции.
+  // const [activeSessionFileId, setActiveSessionFileId] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isChatLimitReached = user && !user.is_active && user.messages_used >= MESSAGE_LIMIT;
