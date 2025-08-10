@@ -22,6 +22,7 @@ function App() {
   return (
     <AppProvider>
       <Routes>
+        <Route index element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegistrationPage />} />
         <Route path="/verify-email" element={<EmailVerificationPage />} />
@@ -29,7 +30,6 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
-            <Route index element={<LandingPage />} />
             <Route path="/main" element={<DataCleanerPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="charts" element={<ChartsPage />} />

@@ -272,22 +272,6 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
-      {/* ФУТЕР */}
-      <footer className="border-t border-gray-200 py-8">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600">
-          <div className="flex items-center gap-2 text-gray-800 font-semibold">
-            <BarChart3 size={18} className="text-blue-600" />
-            Data Insight
-          </div>
-          <div className="flex items-center gap-4">
-            <span>Конфиденциальность</span>
-            <span>Условия</span>
-            <span>Поддержка</span>
-          </div>
-          <div className="text-gray-500">© {new Date().getFullYear()} Data Insight</div>
-        </div>
-      </footer>
     </div>
   );
 };
