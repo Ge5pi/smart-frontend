@@ -1,18 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import {
+  BarChart3,
   BrainCircuit,
   Database,
   Sparkles,
   ShieldCheck,
+  LineChart,
+  PieChart,
+  ScatterChart,
+  CheckCircle,
+  ArrowRight,
   Zap,
   FileText,
-  ArrowRight,
-  PieChart,
 } from 'lucide-react';
 
-// Компонент-обертка для анимации появления при скролле
+// Компонент-обертка для плавной анимации секций при скролле
 const AnimatedSection = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.2 });
@@ -21,170 +25,252 @@ const AnimatedSection = ({ children, className = '' }: { children: React.ReactNo
     <motion.section
       ref={ref}
       className={className}
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 50 }}
-      transition={{ duration: 0.8, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 40 }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
     >
       {children}
     </motion.section>
   );
 };
 
-// Карточка для Bento Grid
-const FeatureCard = ({ icon: Icon, title, desc, className = '' }: { icon: any; title: string; desc: string; className?: string }) => (
+// Анимированные карточки с микро-взаимодействием
+const FeatureCard = ({ icon: Icon, title, desc }: { icon: any; title:string; desc: string }) => (
   <motion.div
-    whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
-    className={`p-6 bg-white/50 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-sm hover:shadow-lg transition-shadow cursor-pointer ${className}`}
+    whileHover={{ scale: 1.03, y: -5 }}
+    transition={{ type: 'spring', stiffness: 300 }}
+    className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm"
   >
-    <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
+    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
       <Icon size={24} />
     </div>
     <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-    <p className="text-gray-600 leading-relaxed">{desc}</p>
+    <p className="text-gray-600">{desc}</p>
   </motion.div>
 );
 
-
 const Step = ({ num, title, desc }: { num: string; title: string; desc: string }) => (
-  <div className="relative p-6 bg-white rounded-2xl border border-gray-200">
-    <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+  <div className="relative p-6 bg-white rounded-2xl border border-gray-200 h-full">
+    <div className="absolute -top-4 -left-4 w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-md">
       {num}
     </div>
-    <h3 className="font-bold text-xl text-gray-900 mt-6 mb-2">{title}</h3>
+    <h4 className="text-lg font-semibold text-gray-900 mb-2 mt-4">{title}</h4>
     <p className="text-gray-600">{desc}</p>
   </div>
 );
 
+const PreviewCard = ({ title, desc, children }: any) => (
+  <motion.div
+    whileHover={{ scale: 1.02, y: -4 }}
+    transition={{ type: 'spring', stiffness: 300 }}
+    className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm h-full flex flex-col"
+  >
+    <div className="p-5 border-b border-gray-100">
+      <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+      <p className="text-gray-600 text-sm mt-1">{desc}</p>
+    </div>
+    <div className="p-4 bg-gray-50 flex-grow">{children}</div>
+  </motion.div>
+);
+
 const Testimonial = ({ quote, author, role }: { quote: string; author: string; role: string }) => (
-  <div className="p-6 bg-white rounded-2xl border border-gray-200 text-center flex flex-col items-center">
-    <Sparkles className="text-blue-500 mb-4" />
-    <blockquote className="text-gray-700 italic mb-4">"{quote}"</blockquote>
-    <p className="font-semibold text-gray-900">{author}</p>
-    <p className="text-sm text-gray-500">{role}</p>
+  <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm h-full">
+    <p className="text-gray-800 italic">“{quote}”</p>
+    <div className="mt-4 text-sm text-gray-600">
+      <span className="font-semibold text-gray-900">{author}</span> - {role}
+    </div>
   </div>
 );
 
-export default function LandingPage() {
+const LandingPage = () => {
+  const navigate = useNavigate();
+
   return (
-    <div className="bg-gray-50 text-gray-800">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center text-center px-6 overflow-hidden">
+    <div className="min-h-screen bg-gray-50">
+      {/* HERO */}
+      <header className="relative overflow-hidden">
         <div className="aurora-background"></div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-          className="z-10"
-        >
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-4">
-            Превратите данные <br /> в{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600">
-              решения
-            </span>
-          </h1>
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 mb-8">
-            Наша AI-платформа анализирует ваши данные, находит скрытые инсайты и помогает принимать верные решения для роста вашего бизнеса.
-          </p>
+        <div className="relative max-w-7xl mx-auto px-6 pt-20 pb-16 z-10">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
-            className="flex gap-4 justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="grid md:grid-cols-2 gap-10 items-center"
           >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                to="/register"
-                className="px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-colors"
-              >
-                Попробовать бесплатно <ArrowRight className="inline ml-2" size={16} />
-              </Link>
+            <motion.div
+              initial={{ x: -30, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50/80 backdrop-blur-sm text-blue-700 text-sm font-medium border border-blue-100 mb-4">
+                <Sparkles size={16} />
+                Аналитика данных за минуты
+              </div>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
+                Загружайте данные. Стройте графики. Задавайте вопросы AI.
+              </h1>
+              <p className="mt-4 text-lg text-gray-600">
+                Единая платформа для загрузки данных, очистки, визуализации и интеллектуального
+                анализа. Поддержка CSV/Excel и подключений к базам (PostgreSQL, SQL Server).
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/register')}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-colors"
+                >
+                  Начать бесплатно
+                  <ArrowRight size={18} />
+                </motion.button>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                   <Link
+                    to="/login"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/80 backdrop-blur-sm border-2 border-gray-300 text-gray-800 font-semibold hover:border-gray-400 hover:bg-white transition-all"
+                  >
+                    Войти
+                  </Link>
+                </motion.div>
+              </div>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                to="/login"
-                className="px-8 py-3 rounded-xl bg-white/80 backdrop-blur-md text-gray-800 font-semibold shadow-md hover:bg-white transition-colors"
-              >
-                Демо
-              </Link>
+
+            {/* Мокап с анимацией */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.4, ease: 'easeOut' }}
+              className="bg-white/60 backdrop-blur-xl rounded-2xl border border-gray-200/50 shadow-lg p-6"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <BarChart3 />
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">Data Insight</div>
+                  <div className="text-gray-500 text-sm">Визуализация и AI-анализ</div>
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-3 gap-3">
+                <div className="h-24 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+                  <LineChart className="opacity-80" />
+                </div>
+                <div className="h-24 bg-purple-50 rounded-lg border border-purple-100 flex items-center justify-center text-purple-600 font-semibold">
+                  <PieChart className="opacity-80" />
+                </div>
+                <div className="h-24 bg-teal-50 rounded-lg border border-teal-100 flex items-center justify-center text-teal-600 font-semibold">
+                  <ScatterChart className="opacity-80" />
+                </div>
+              </div>
+              <div className="mt-6 p-4 bg-gray-50/80 rounded-xl border border-gray-200">
+                <div className="text-sm text-gray-700 font-medium mb-2">AI-диалог</div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3 text-gray-600 text-sm">
+                  Какой столбец сильнее всего влияет на зарплату?
+                </div>
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 mt-2 text-gray-800 text-sm">
+                  Модель построила корреляции. Наибольшее влияние у «Опыт_лет» (r=0.62).
+                </div>
+              </div>
             </motion.div>
           </motion.div>
-        </motion.div>
-      </section>
+        </div>
+      </header>
 
-      {/* Features Section (Bento Grid) */}
-      <AnimatedSection className="max-w-7xl mx-auto px-6 py-20">
-        <h2 className="text-4xl font-bold text-center text-gray-900 mb-4">Все, что нужно для аналитики</h2>
-        <p className="text-lg text-gray-600 text-center mb-12 max-w-3xl mx-auto">От сбора данных до автоматических отчетов — наша платформа покрывает весь цикл работы с данными.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <AnimatedSection className="max-w-7xl mx-auto px-6 py-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Что вы получите</h2>
+        <div className="grid md:grid-cols-4 gap-6">
           <FeatureCard
-            icon={Database}
-            title="Интеграция в 1 клик"
-            desc="Подключайте базы данных, CRM и другие источники без написания кода."
-            className="md:col-span-1"
+            icon={BarChart3}
+            title="Быстрые визуализации"
+            desc="Гистограммы, линейные, круговые, scatter, bubble и boxplot — в пару кликов."
           />
           <FeatureCard
             icon={BrainCircuit}
-            title="AI-ассистент"
-            desc="Задавайте вопросы на естественном языке и получайте развернутые ответы с графиками."
-            className="md:col-span-2"
+            title="AI-агент"
+            desc="Задавайте вопросы на естественном языке. Получайте объяснения, гипотезы и инсайты."
           />
           <FeatureCard
-            icon={PieChart}
-            title="Автоматическая визуализация"
-            desc="Платформа сама подбирает лучшие типы графиков для ваших данных."
-            className="md:col-span-2"
+            icon={Database}
+            title="Подключение к БД"
+            desc="Поддержка PostgreSQL и SQL Server. Запускайте анализ и получайте отчеты."
           />
           <FeatureCard
-            icon={Zap}
-            title="Мгновенные инсайты"
-            desc="AI находит аномалии, тренды и корреляции, которые вы могли упустить."
-            className="md:col-span-1"
-          />
-           <FeatureCard
-            icon={FileText}
-            title="Готовые отчеты"
-            desc="Создавайте кастомизируемые дашборды и делитесь ими с командой."
-            className="md:col-span-1"
-          />
-           <FeatureCard
-            icon={ShieldCheck}
-            title="Безопасность и контроль"
-            desc="Ваши данные надежно защищены и доступны только вам."
-            className="md:col-span-2"
+            icon={CheckCircle}
+            title="Очистка данных"
+            desc="Заполнение пропусков, поиск выбросов, кодирование категорий. Готовьте датасет к анализу."
           />
         </div>
       </AnimatedSection>
 
-      {/* How It Works Section */}
-      <AnimatedSection className="max-w-7xl mx-auto px-6 py-20 bg-blue-50/50 rounded-3xl">
-        <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Начать проще простого</h2>
-        <div className="grid md:grid-cols-3 gap-8">
+      <AnimatedSection className="max-w-7xl mx-auto px-6 pb-16">
+        <div className="grid md:grid-cols-3 gap-6">
+          <PreviewCard title="Визуализация" desc="Интерактивные графики на Chart.js с аккуратными пресетами.">
+            {/* Тут может быть ваш компонент графика */}
+            <div className="h-44 bg-white rounded-xl border border-gray-200 flex items-center justify-center">
+              <LineChart size={48} className="text-gray-300"/>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <span className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm">Histogram</span>
+              <span className="px-3 py-1 rounded-lg bg-purple-50 text-purple-700 text-sm">Pie</span>
+              <span className="px-3 py-1 rounded-lg bg-teal-50 text-teal-700 text-sm">Scatter</span>
+            </div>
+          </PreviewCard>
+
+          <PreviewCard title="AI-диалог" desc="Контекстная сессия по конкретному файлу: объяснения, выводы, шаги.">
+            <div className="space-y-2">
+              <div className="rounded-lg border bg-white p-3 text-gray-600 text-sm">Покажи топ-5 строк по зарплате</div>
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-gray-800 text-sm">
+                Отобраны строки. Средняя зарплата в выборке: 185k. Хотите построить график распределения?
+              </div>
+            </div>
+          </PreviewCard>
+
+          <PreviewCard title="Анализ БД" desc="Старт задачи, статус отчета, просмотр результатов.">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <FileText />
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900">Отчет #1294</div>
+                <div className="text-gray-500 text-sm">Завершен - 12 мин назад</div>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+              <div className="p-2 rounded-lg bg-green-50 text-green-700 text-center">Корреляции</div>
+              <div className="p-2 rounded-lg bg-yellow-50 text-yellow-700 text-center">Гипотезы</div>
+              <div className="p-2 rounded-lg bg-blue-50 text-blue-700 text-center">Кластеры</div>
+            </div>
+          </PreviewCard>
+        </div>
+      </AnimatedSection>
+
+      <AnimatedSection className="max-w-7xl mx-auto px-6 pb-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Как это работает</h2>
+        <div className="grid md:grid-cols-3 gap-6">
           <Step
             num="1"
-            title="Подключите данные"
-            desc="Загрузите файл или подключите вашу базу данных. Это займет не больше 5 минут."
+            title="Загрузите файл или подключитесь к БД"
+            desc="CSV/Excel или строка подключения PostgreSQL/SQL Server — секунды на старт."
           />
           <Step
             num="2"
-            title="Задайте вопрос"
-            desc="Спросите нашего AI-ассистента, например: 'Какие каналы принесли больше всего прибыли в прошлом квартале?'"
+            title="Очистите и визуализируйте"
+            desc="Заполните пропуски, найдите выбросы, закодируйте категории, постройте графики."
           />
           <Step
             num="3"
-            title="Получите инсайт"
-            desc="Мгновенно получите готовый отчет с визуализациями и текстовым объяснением."
+            title="Спросите AI"
+            desc="Получите пояснения, гипотезы, отчеты и готовые инсайты — в диалоге."
           />
         </div>
       </AnimatedSection>
 
-      {/* Testimonials Section */}
-      <AnimatedSection className="max-w-7xl mx-auto px-6 py-20">
-        <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">Нам доверяют профессионалы</h2>
+      <AnimatedSection className="max-w-7xl mx-auto px-6 pb-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Нам доверяют</h2>
         <div className="grid md:grid-cols-3 gap-6">
           <Testimonial
-            quote="Платформа сэкономила нам десятки часов ручной работы по подготовке отчетов."
-            author="Алексей"
-            role="Product Manager"
+            quote="За вечер собрали отчет по продажам и нашли три гипотезы, которые увеличили конверсию."
+            author="Анна"
+            role="Продуктовый аналитик"
           />
           <Testimonial
             quote="Подключил продовую базу и получил читаемый отчет с корреляциями и кластерами."
@@ -199,29 +285,26 @@ export default function LandingPage() {
         </div>
       </AnimatedSection>
 
-      {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-6 pb-20">
-         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="p-10 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-700 flex flex-col md:flex-row items-center justify-between gap-6 text-white"
-        >
-          <div>
-            <h3 className="text-3xl font-bold">Готовы начать?</h3>
-            <p className="text-blue-100 mt-2">Создайте аккаунт и получите первые инсайты уже сегодня. Бесплатно.</p>
+      <AnimatedSection className="max-w-7xl mx-auto px-6 pb-20">
+        <div className="p-8 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="text-center md:text-left">
+            <h3 className="text-2xl font-bold">Готовы превратить данные в результат?</h3>
+            <p className="text-blue-100 mt-1">Создайте аккаунт и получите первые инсайты уже сегодня.</p>
           </div>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-             <Link
-              to="/register"
-              className="px-8 py-4 rounded-xl bg-white text-blue-600 font-bold shadow-lg hover:bg-gray-100 transition-colors shrink-0"
-            >
-              Зарегистрироваться
-            </Link>
-          </motion.div>
-        </motion.div>
-      </section>
+          <div className="flex-shrink-0">
+             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/register"
+                className="px-6 py-3 rounded-xl bg-white text-blue-600 font-semibold shadow-lg hover:bg-gray-200 transition-colors"
+              >
+                Начать бесплатно
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </AnimatedSection>
     </div>
   );
-}
+};
+
+export default LandingPage;
