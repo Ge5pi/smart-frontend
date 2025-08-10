@@ -28,7 +28,7 @@ const LoginPage = () => {
             const token = res.data.access_token;
 
             login(token);
-            navigate("/", { replace: true });
+            navigate("/main", { replace: true });
 
         } catch (err: any) {
             if (err.response && err.response.data && err.response.data.detail) {

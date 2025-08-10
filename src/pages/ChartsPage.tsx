@@ -16,12 +16,7 @@ import {
 } from 'chart.js';
 import { BarChart3, TrendingUp, Loader } from "lucide-react";
 import api from '../api';
-
-// --- НАЧАЛО ИСПРАВЛЕНИЯ ---
-// 1. Импортируем из НОВОЙ, правильной библиотеки
 import { BoxPlotController, BoxAndWiskers } from '@sgratzl/chartjs-chart-boxplot';
-
-// 2. Регистрируем все компоненты, включая Box Plot из новой библиотеки
 ChartJS.register(
   CategoryScale,
   LinearScale,

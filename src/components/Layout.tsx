@@ -27,7 +27,7 @@ const Layout = () => {
               </h1>
             </div>
             <nav className="flex items-center gap-2">
-              <NavLink to="/" className={({ isActive }) => `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <NavLink to="/main" className={({ isActive }) => `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
                 Инструменты
               </NavLink>
               <NavLink

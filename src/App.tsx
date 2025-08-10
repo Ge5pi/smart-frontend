@@ -16,6 +16,7 @@ import ReportPage from './pages/ReportPage'
 import EmailVerificationPage from './pages/EmailVerificationPage'
 import RequestPasswordResetPage from './pages/RequestPasswordResetPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import LandingPage from './pages/LandingPage'
 
 function App() {
   return (
@@ -28,7 +29,8 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
-            <Route index element={<DataCleanerPage />} />
+            <Route index element={<LandingPage />} />
+            <Route path="/main" element={<DataCleanerPage />} />
             <Route path="chat" element={<ChatPage />} />
             <Route path="charts" element={<ChartsPage />} />
             <Route path="/connections" element={<ConnectionsPage />} />
