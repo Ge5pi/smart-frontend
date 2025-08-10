@@ -10,6 +10,15 @@ type ChatMessage = {
   content: string;
 };
 
+// Тип для ответа от API с историей
+type ApiChatMessage = {
+  id: number;
+  session_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+}
+
 const MESSAGE_LIMIT = 10;
 
 const ChatPage = () => {
@@ -31,31 +40,39 @@ const ChatPage = () => {
       navigate('/');
       return;
     }
-    if (token && fileId && (fileId !== activeSessionFileId || !sessionId)) {
+    // Запускаем только если изменился ID файла, чтобы не перезагружать сессию постоянно
+    if (token && fileId && (fileId !== activeSessionFileId)) {
       setIsSessionLoading(true);
       setError(null);
-      setChatHistory([]);
+      setChatHistory([]); // Очищаем историю от предыдущего файла
 
       const sessionFormData = new FormData();
       sessionFormData.append("file_id", fileId);
 
-      api.post("/sessions/start", sessionFormData)
+      // Используем новый эндпоинт для получения/создания сессии
+      api.post("/sessions/get-or-create", sessionFormData)
         .then(res => {
-          const newSessionId = res.data.session_id;
-          setSessionId(newSessionId);
+          const { session_id, history } = res.data;
+          setSessionId(session_id);
           setActiveSessionFileId(fileId);
-          setChatHistory([{ role: 'assistant', content: `Сессия для файла успешно начата. Я готов к анализу. Что бы вы хотели узнать?` }]);
+          // Преобразуем историю из API в формат для стейта
+          const formattedHistory: ChatMessage[] = history.map((msg: ApiChatMessage) => ({
+              role: msg.role,
+              content: msg.content
+          }));
+          setChatHistory(formattedHistory);
         })
         .catch(err => {
-            const message = err.response?.data?.detail || "Не удалось запустить сессию. Пожалуйста, попробуйте вернуться на главную страницу и выбрать файл заново.";
+            const message = err.response?.data?.detail || "Не удалось запустить или загрузить сессию. Пожалуйста, попробуйте вернуться на главную страницу и выбрать файл заново.";
             setError(message);
-            console.error("Ошибка старта сессии", err);
+            console.error("Ошибка старта/загрузки сессии", err);
             setSessionId(null);
             setActiveSessionFileId(null);
         })
         .finally(() => setIsSessionLoading(false));
     }
-  }, [fileId, token, sessionId, activeSessionFileId, navigate, setSessionId]);
+  }, [fileId, token, activeSessionFileId, navigate, setSessionId]); // Убрали sessionId из зависимостей
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
@@ -64,6 +81,7 @@ const ChatPage = () => {
     if (isChatLimitReached || !currentQuery.trim() || !sessionId || isReplying || !token) return;
 
     const userMessage: ChatMessage = { role: 'user', content: currentQuery };
+    // Оптимистичное обновление UI
     setChatHistory(prev => [...prev, userMessage]);
     const queryToSend = currentQuery;
     setCurrentQuery("");
@@ -76,10 +94,14 @@ const ChatPage = () => {
 
     try {
       const res = await api.post("/sessions/ask", formData);
-      setChatHistory(prev => [...prev, { role: 'assistant', content: res.data.answer }]);
+      const assistantMessage: ChatMessage = { role: 'assistant', content: res.data.answer };
+      // Добавляем ответ ассистента в историю
+      setChatHistory(prev => [...prev, assistantMessage]);
     } catch (err: any) {
         const message = err.response?.data?.detail || "Произошла ошибка при обработке вашего запроса.";
         setError(message);
+        // Откатываем оптимистичное обновление в случае ошибки
+        setChatHistory(prev => prev.slice(0, -1));
         console.error(err);
     } finally {
       setIsReplying(false);
@@ -87,11 +109,7 @@ const ChatPage = () => {
   };
 
   if (isSessionLoading) {
-    return <div className="flex justify-center items-center h-64 text-lg font-medium text-gray-600"><Loader className="animate-spin mr-4" /> Перезапускаем сессию для нового файла...</div>;
-  }
-
-  if (!fileId || !sessionId) {
-      return <div className="flex justify-center items-center h-64 text-lg font-medium text-gray-600">Ожидание начала сессии...</div>;
+    return <div className="flex justify-center items-center h-64 text-lg font-medium text-gray-600"><Loader className="animate-spin mr-4" /> Загружаем сессию и историю чата...</div>;
   }
 
   return (
