@@ -95,19 +95,23 @@ const SessionListPage = () => {
             <div className="space-y-3">
               {sessions.length > 0 ? (
                 sessions.map(session => (
-                  <Link
+                    <Link
                     key={session.id}
                     to={`/chat/${session.id}`}
                     className="block p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-colors group"
-                  >
+                    >
                     <div className="flex justify-between items-center">
-                      <div>
-                          <p className="font-semibold text-gray-800 flex items-center gap-2"><MessageSquareText className="w-5 h-5 text-gray-400"/>{session.title}</p>
-                          <p className="text-sm text-gray-500 mt-1">Последнее обновление: {format(new Date(session.last_updated), 'dd.MM.yyyy HH:mm')}</p>
-                      </div>
-                      <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                        <div>
+                            {/* ИЗМЕНЕНИЕ: Добавлена проверка на случай, если title пустой */}
+                            <p className="font-semibold text-gray-800 flex items-center gap-2"><MessageSquareText className="w-5 h-5 text-gray-400"/>{session.title || 'Диалог без названия'}</p>
+                            {/* ИЗМЕНЕНИЕ: Добавлена проверка на случай, если дата пустая */}
+                            <p className="text-sm text-gray-500 mt-1">
+                                Последнее обновление: {session.last_updated ? format(new Date(session.last_updated), 'dd.MM.yyyy HH:mm') : 'Неизвестно'}
+                            </p>
+                        </div>
+                        <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors" />
                     </div>
-                  </Link>
+                    </Link>
                 ))
               ) : (
                 <p className="text-center text-gray-500 py-8">Для этого файла еще нет диалогов.</p>
