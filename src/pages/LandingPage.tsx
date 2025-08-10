@@ -13,6 +13,7 @@ import {
   ArrowRight,
   FileText,
 } from 'lucide-react';
+import graph from "../assets/graph.png";
 
 // Компонент-обертка для плавной анимации секций при скролле
 const AnimatedSection = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
@@ -202,9 +203,8 @@ const LandingPage = () => {
       <AnimatedSection className="max-w-7xl mx-auto px-6 pb-16">
         <div className="grid md:grid-cols-3 gap-6">
           <PreviewCard title="Визуализация" desc="Интерактивные графики на Chart.js с аккуратными пресетами.">
-            {/* Тут может быть ваш компонент графика */}
             <div className="h-44 bg-white rounded-xl border border-gray-200 flex items-center justify-center">
-              <LineChart size={48} className="text-gray-300"/>
+              <img src={graph} alt="Image" />
             </div>
             <div className="mt-3 flex gap-2">
               <span className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm">Histogram</span>
