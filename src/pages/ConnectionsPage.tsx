@@ -91,10 +91,10 @@ const ConnectionsPage: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-  if (!currentUser.is_active && currentUser.reports_used >= 1) {
-      setError("Вы исчерпали лимит на создание отчетов. Пожалуйста, перейдите на платный тариф.");
-      return;
-    }
+      if (currentUser && !currentUser.is_active && currentUser.reports_used >= 1) {
+          setError("Вы исчерпали лимит на создание отчетов. Пожалуйста, перейдите на платный тариф.");
+          return;
+        }
     if (!connectionString.trim() || !alias.trim()) {
       setError('Псевдоним и строка подключения не могут быть пустыми');
       return;
@@ -131,7 +131,7 @@ const ConnectionsPage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Анализ базы данных</h1>
 
-        {currentUser && currentUser.reports_used >= 1 && (
+        {currentUser && currentUser.reports_used >= 1 && !currentUser.is_active && (
             <UsageWarning user={currentUser} pageType="reports" />
         )}
 

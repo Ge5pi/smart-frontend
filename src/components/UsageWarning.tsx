@@ -1,11 +1,11 @@
 // src/components/UsageWarning.tsx
 
-import { User } from '../api'; // Импортируем тип из api.ts
-import { Info, AlertTriangle, ExternalLink } from 'lucide-react';
+import type { User } from '../api'; // Импортируем тип из api.ts
+import { AlertTriangle, ExternalLink } from 'lucide-react';
 
 interface UsageWarningProps {
   user: User;
-  pageType: 'chat' | 'reports'; // Определяем, для какой страницы плашка
+  pageType: 'chat' | 'reports';
 }
 
 const MESSAGE_LIMIT = 10;
@@ -18,7 +18,6 @@ const UsageWarning = ({ user, pageType }: UsageWarningProps) => {
   const isMessagesLimitExceeded = messagesLeft <= 0;
   const isReportsLimitExceeded = reportsLeft <= 0;
 
-  // Не показывать ничего, если лимиты для данной страницы не исчерпаны
   if (pageType === 'chat' && !isMessagesLimitExceeded) return null;
   if (pageType === 'reports' && !isReportsLimitExceeded) return null;
 

@@ -60,7 +60,7 @@ const ChatPage = () => {
   const handleSendQuery = async () => {
     if (!currentQuery.trim() || !sessionId || isReplying || !token) return;
 
-    if (!currentUser.is_active && currentUser.messages_used >= 10) {
+    if (currentUser && !currentUser.is_active && currentUser.messages_used >= 10) {
       setError("Вы исчерпали лимит сообщений. Пожалуйста, перейдите на платный тариф.");
       return;
     }
@@ -98,8 +98,8 @@ const ChatPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
-    {currentUser && currentUser.messages_used >= 10 && (
-          <UsageWarning user={currentUser} pageType="chat" />
+    {currentUser && currentUser.messages_used >= 10 && !currentUser.is_active && (
+        <UsageWarning user={currentUser} pageType="chat" />
       )}
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50">
             <div className="p-6 border-b border-gray-200/50 bg-gradient-to-r from-indigo-50 to-blue-50 flex justify-between items-center">
