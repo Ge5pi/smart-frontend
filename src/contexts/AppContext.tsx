@@ -33,6 +33,7 @@ type AppContextType = {
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   resetState: () => void;
   token: string | null;
+  currentUser: User | null;
   user: User | null;
   login: (token: string) => void;
   logout: () => void;
@@ -54,6 +55,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [token, setToken] = useState<string | null>(localStorage.getItem('authToken'));
   const [user, setUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userFiles, setUserFiles] = useState<any[]>([]);
 
   useEffect(() => {
@@ -65,6 +67,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 if (decoded.exp * 1000 > Date.now()) {
                     setToken(storedToken);
                     setUser({ email: decoded.sub });
+                    const response = await getMe();
+                    setCurrentUser(response.data);
                 } else {
                     localStorage.removeItem('authToken'); // Удаляем просроченный токен
                 }

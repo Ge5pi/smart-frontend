@@ -32,6 +32,16 @@ export interface DatabaseConnection {
   created_at: string;
 }
 
+export interface User {
+  id: number;
+  email: string;
+  is_active: boolean;
+  is_verified: boolean;
+  messages_used: number;
+  reports_used: number;
+}
+
+
 // Упрощенная структура результатов для отчета
 interface DatabaseAnalysisResults {
   insights: Record<string, string>;
@@ -121,5 +131,8 @@ export const resetPassword = (token: string, new_password: string) => {
   return api.post('/users/password-reset', { token, new_password });
 };
 
+export const getMe = () => {
+  return api.get<User>('/users/me');
+};
 
 export default api;
