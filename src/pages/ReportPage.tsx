@@ -399,54 +399,6 @@ const ChartsView: React.FC<{ visualizations: Record<string, string[]> | undefine
     );
 };
 
-const downloadPDF = async (reportId: number) => {
-  try {
-    const token = localStorage.getItem('authToken');
-    // ИЗМЕНЕНИЕ: Используйте полный API_URL для запроса PDF
-    const response = await fetch(`${API_URL}/analytics/database/reports/${reportId}/pdf`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Ошибка сервера:', errorData);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}. Детали: ${errorData}`);
-    }
-
-    // Проверяем Content-Type
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/pdf')) {
-      throw new Error('Сервер вернул не PDF файл (ожидался application/pdf)');
-    }
-
-    const blob = await response.blob();
-
-    // Проверяем размер blob
-    if (blob.size === 0) {
-      throw new Error('Получен пустой файл отчета');
-    }
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `report_${reportId}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-  } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(`Произошла ошибка при скачивании PDF отчета: ${error.message}`);
-      } else {
-        alert(`Произошла неизвестная ошибка при скачивании PDF отчета: ${String(error)}`);
-      }
-    }
-};
-
 const ReportPage: React.FC = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const { report, loading, error } = useReport(reportId);
@@ -462,7 +414,6 @@ const ReportPage: React.FC = () => {
 
     return (
       <>
-        <ReportHeader report={report} />
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
