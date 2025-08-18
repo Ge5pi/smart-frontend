@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef} from 'react';
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { getReport, type EnhancedReport } from '../api';
-import { Link, Database, BarChart2, ChevronDown, PieChart, LineChart, Download } from 'lucide-react';
+import { Link, Database, BarChart2, ChevronDown, PieChart, LineChart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { API_URL } from '../api';
 // --- Типы ---
@@ -445,40 +445,6 @@ const downloadPDF = async (reportId: number) => {
         alert(`Произошла неизвестная ошибка при скачивании PDF отчета: ${String(error)}`);
       }
     }
-};
-
-const ReportHeader: React.FC<{ report: EnhancedReport }> = ({ report }) => {
-  const handleDownloadPDF = () => {
-    downloadPDF(report.id);
-  };
-
-  return (
-    <div className="bg-white shadow-sm border-b px-6 py-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Отчет #{report.id}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Создан: {new Date(report.created_at).toLocaleString('ru-RU')}
-          </p>
-          <div className="mt-2">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              report.status === 'completed'
-                ? 'bg-green-100 text-green-800'
-                : report.status === 'failed'
-                ? 'bg-red-100 text-red-800'
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              {report.status === 'completed' ? 'Завершен' :
-               report.status === 'failed' ? 'Ошибка' :
-               report.status === 'processing' ? 'Обработка' : 'В очереди'}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 const ReportPage: React.FC = () => {
