@@ -205,30 +205,39 @@ const AnalysisCard: React.FC<{ title: string; result: AnalysisResult; icon: Reac
     );
 };
 
-const CollapsibleSection: React.FC<{ title: string; icon: ReactNode; children: ReactNode; defaultOpen?: boolean; }> = ({ title, icon, children, defaultOpen = true }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
+const CollapsibleSection: React.FC<{
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  summaryRight?: ReactNode;
+}> = ({ title, icon, children, defaultOpen = false, summaryRight }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
-    return (
-        <section>
-            <div
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex justify-between items-center cursor-pointer mb-4 pb-2 border-b select-none"
-            >
-                <h2 className="flex items-center text-2xl font-semibold text-gray-800">
-                    {icon}
-                    {title}
-                </h2>
-                <ChevronDown
-                    className={`w-6 h-6 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-                />
-            </div>
-            {isOpen && (
-                <div className="space-y-6">
-                    {children}
-                </div>
-            )}
-        </section>
-    );
+  return (
+    <section className="mb-8">
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex justify-between items-center cursor-pointer mb-4 pb-2 border-b select-none"
+      >
+        <h2 className="flex items-center text-2xl font-semibold text-gray-800">
+          {icon}
+          <span className="ml-1">{title}</span>
+        </h2>
+        <div className="flex items-center gap-3">
+          {summaryRight}
+          <ChevronDown
+            className={`w-6 h-6 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </div>
+      </div>
+      {isOpen && (
+        <div className="space-y-6">
+          {children}
+        </div>
+      )}
+    </section>
+  );
 };
 
 const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ results }) => (
@@ -254,118 +263,164 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
         )}
 
         {results.overall_summary && (
+          <CollapsibleSection
+            title="Общий обзор всей базы"
+            icon={<LineChart className="w-7 h-7 mr-3 text-purple-600" />}
+            defaultOpen={false}
+          >
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 prose prose-sm max-w-none">
+              <ReactMarkdown>{results.overall_summary}</ReactMarkdown>
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {results.hypotheses && Object.keys(results.hypotheses).length > 0 && (() => {
+          const totalHyps = Object.values(results.hypotheses).reduce((acc, arr) => acc + (arr?.length ?? 0), 0);
+          return (
             <CollapsibleSection
-                title="Общий обзор всей базы"
-                icon={<LineChart className="w-7 h-7 mr-3 text-purple-600" />}
+              title="Гипотезы и результаты проверки"
+              icon={<BarChart2 className="w-7 h-7 mr-3 text-indigo-600" />}
+              defaultOpen={false}
+              summaryRight={<span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200">{totalHyps} шт.</span>}
             >
-                <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100 prose prose-sm max-w-none">
-                    <ReactMarkdown>{results.overall_summary}</ReactMarkdown>
+              {Object.entries(results.hypotheses).map(([table, hyps]) => (
+                <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
+                  <h3 className="font-mono text-lg text-blue-700 mb-3">{table}</h3>
+
+                  {hyps.length === 0 && (
+                    <p className="text-gray-500 text-sm bg-gray-50 border border-dashed border-gray-200 rounded px-3 py-2">
+                      Нет гипотез для этой таблицы.
+                    </p>
+                  )}
+
+                  {hyps.map((h, idx) => (
+                    <article key={idx} className="mb-4 border rounded-md p-3">
+                      <header className="flex justify-between items-start gap-3">
+                        <p className="font-semibold leading-snug">{h.hypothesis}</p>
+                        <p className={`text-xs font-bold whitespace-nowrap ${h.result === 'подтверждена' ? 'text-green-600' : h.result === 'опровергнута' ? 'text-red-600' : 'text-gray-500'}`}>
+                          Результат: {h.result} {h.p_value !== null && `(p = ${h.p_value})`}
+                        </p>
+                      </header>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-sm">
+                        <div className="flex gap-2">
+                          <span className="text-gray-500">Тест</span>
+                          <span className="text-gray-800">{h.test}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-gray-500">Колонки</span>
+                          <span className="text-gray-800">{h.columns.join(', ')}</span>
+                        </div>
+                      </div>
+
+                      {h.explanation && (
+                        <p className="text-sm text-gray-700 mt-2">{h.explanation}</p>
+                      )}
+                    </article>
+                  ))}
                 </div>
+              ))}
             </CollapsibleSection>
-        )}
+          );
+        })()}
 
-        {results.hypotheses && Object.keys(results.hypotheses).length > 0 && (
+        {results.clusters && Object.keys(results.clusters).length > 0 && (() => {
+          // Подсчитаем суммарное количество кластеров, если есть sizes/clusters_count
+          const totalClusters = Object.values(results.clusters).reduce((acc, c) => {
+            if (typeof c?.clusters_count === 'number') return acc + c.clusters_count;
+            if (c?.sizes) return acc + Object.keys(c.sizes).length;
+            return acc;
+          }, 0);
+
+          return (
             <CollapsibleSection
-                title="Гипотезы и результаты проверки"
-                icon={<BarChart2 className="w-7 h-7 mr-3 text-indigo-600" />}
+              title="Кластеризация данных"
+              icon={<Database className="w-7 h-7 mr-3 text-teal-600" />}
+              defaultOpen={false}
+              summaryRight={totalClusters > 0 ? <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200">{totalClusters} кластеров</span> : null}
             >
-                {Object.entries(results.hypotheses).map(([table, hyps]) => (
-                    <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
-                        <h3 className="font-mono text-lg text-blue-700 mb-2">{table}</h3>
-                        {hyps.length === 0 && <p className="text-gray-500 text-sm">Нет гипотез для этой таблицы.</p>}
-                        {hyps.map((h, idx) => (
-                            <div key={idx} className="mb-4 border-b pb-2">
-                                <p className="font-semibold">{h.hypothesis}</p>
-                                <p className="text-sm text-gray-600">Тест: {h.test}, Колонки: {h.columns.join(', ')}</p>
-                                <p className={`text-sm font-bold ${h.result === 'подтверждена' ? 'text-green-600' : h.result === 'опровергнута' ? 'text-red-600' : 'text-gray-500'}`}>
-                                    Результат: {h.result} {h.p_value !== null && `(p = ${h.p_value})`}
-                                </p>
-                                {h.explanation && (
-                                    <p className="text-sm text-gray-700 mt-1">{h.explanation}</p>
-                                )}
-                            </div>
+              {Object.entries(results.clusters).map(([table, cluster]) => (
+                <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
+                  <h3 className="font-mono text-lg text-blue-700 mb-3">{table}</h3>
+
+                  {cluster.error && <p className="text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-2">{cluster.error}</p>}
+                  {cluster.message && <p className="text-blue-800 bg-blue-50 border border-blue-200 rounded px-3 py-2 mb-2">{cluster.message}</p>}
+
+                  {cluster.sizes && Object.keys(cluster.sizes).length > 0 && (
+                    <>
+                      <p className="font-semibold mb-2">Размеры кластеров</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+                        {Object.entries(cluster.sizes).map(([id, size]) => (
+                          <div key={id} className="flex justify-between border rounded px-3 py-2 bg-gray-50">
+                            <span className="text-gray-600">Кластер {id}</span>
+                            <span className="font-mono">{size}</span>
+                          </div>
                         ))}
-                    </div>
-                ))}
+                      </div>
+                    </>
+                  )}
+
+                  {cluster.important_features && cluster.important_features.length > 0 && (
+                    <>
+                      <p className="font-semibold mt-3 mb-2">Важные признаки</p>
+                      <div className="flex flex-wrap gap-2">
+                        {cluster.important_features.map((f, i) => (
+                          <span key={i} className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {cluster.cluster_profiles && Object.keys(cluster.cluster_profiles).length > 0 && (
+                    <>
+                      <p className="font-semibold mt-3 mb-2">Профили кластеров (средние значения признаков)</p>
+                      {/* Таблицу оставляем как есть */}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border border-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 border">Признак</th>
+                              {Object.keys(cluster.cluster_profiles || {}).map(cid => (
+                                <th key={cid} className="px-4 py-2 border">Кластер {cid}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const firstClusterKey = Object.keys(cluster.cluster_profiles || {})[0];
+                              const firstCluster = firstClusterKey ? cluster.cluster_profiles?.[firstClusterKey] : undefined;
+                              return Object.keys(firstCluster || {}).map(feature => (
+                                <tr key={feature}>
+                                  <td className="px-4 py-2 border">{feature}</td>
+                                  {Object.keys(cluster.cluster_profiles || {}).map(cid => (
+                                    <td key={cid} className="px-4 py-2 border">
+                                      {cluster.cluster_profiles?.[cid]?.[feature]}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+
+                  {cluster.gpt_summary && (
+                    <>
+                      <p className="font-semibold mt-3 mb-1">Интерпретация кластеров</p>
+                      <div className="prose prose-sm max-w-none text-gray-800">
+                        <ReactMarkdown>{cluster.gpt_summary}</ReactMarkdown>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
             </CollapsibleSection>
-        )}
-
-        {results.clusters && Object.keys(results.clusters).length > 0 && (
-            <CollapsibleSection
-                title="Кластеризация данных"
-                icon={<Database className="w-7 h-7 mr-3 text-teal-600" />}
-            >
-                {Object.entries(results.clusters).map(([table, cluster]) => (
-                    <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
-                        <h3 className="font-mono text-lg text-blue-700 mb-3">{table}</h3>
-
-                        {cluster.error && <p className="text-red-600">{cluster.error}</p>}
-                        {cluster.message && <p className="text-gray-600">{cluster.message}</p>}
-
-                        {cluster.sizes && Object.keys(cluster.sizes).length > 0 && (
-                            <>
-                                <p className="font-semibold mb-2">Размеры кластеров:</p>
-                                <ul className="list-disc pl-5 text-sm text-gray-700">
-                                    {Object.entries(cluster.sizes).map(([id, size]) => (
-                                        <li key={id}>Кластер {id}: {size} записей</li>
-                                    ))}
-                                </ul>
-                            </>
-                        )}
-
-                        {cluster.important_features && cluster.important_features.length > 0 && (
-                            <>
-                                <p className="font-semibold mt-3 mb-1">Важные признаки:</p>
-                                <p className="text-sm text-gray-700">{cluster.important_features.join(", ")}</p>
-                            </>
-                        )}
-
-                        {cluster.cluster_profiles && Object.keys(cluster.cluster_profiles).length > 0 && (
-                            <>
-                                <p className="font-semibold mt-3 mb-2">Профили кластеров (средние значения признаков):</p>
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full text-sm border border-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-4 py-2 border">Признак</th>
-                                                {Object.keys(cluster.cluster_profiles || {}).map(cid => (
-                                                    <th key={cid} className="px-4 py-2 border">Кластер {cid}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {(() => {
-                                                const firstClusterKey = Object.keys(cluster.cluster_profiles || {})[0];
-                                                const firstCluster = firstClusterKey ? cluster.cluster_profiles?.[firstClusterKey] : undefined;
-                                                return Object.keys(firstCluster || {}).map(feature => (
-                                                    <tr key={feature}>
-                                                        <td className="px-4 py-2 border">{feature}</td>
-                                                        {Object.keys(cluster.cluster_profiles || {}).map(cid => (
-                                                            <td key={cid} className="px-4 py-2 border">
-                                                                {cluster.cluster_profiles?.[cid]?.[feature]}
-                                                            </td>
-                                                        ))}
-                                                    </tr>
-                                                ));
-                                            })()}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </>
-                        )}
-
-                        {cluster.gpt_summary && (
-                            <>
-                                <p className="font-semibold mt-3 mb-1">Интерпретация кластеров:</p>
-                                <div className="prose prose-sm max-w-none text-gray-800">
-                                    <ReactMarkdown>{cluster.gpt_summary}</ReactMarkdown>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                ))}
-            </CollapsibleSection>
-        )}
+          );
+        })()}
     </div>
 );
 
