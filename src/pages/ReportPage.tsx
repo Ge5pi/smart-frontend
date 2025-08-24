@@ -295,15 +295,12 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
           const [openMap, setOpenMap] = React.useState<Record<string, boolean>>(
             () => Object.fromEntries(sections.map(s => [s.id, false])) // все подразделы свернуты
           );
-
           const hasTrends = sections.some(s => /тренд/i.test(s.title));
           const hasLinks = sections.some(s => /связ/i.test(s.title)); // “связи”
           const hasAnoms = sections.some(s => /аномал|выброс/i.test(s.title));
           const hasRisks = sections.some(s => /риск|ограничен/i.test(s.title));
           const hasChecks = sections.some(s => /провер/i.test(s.title));
-
           const tldr = sections.find(s => s.title.toLowerCase() === 'общий обзор');
-
           return (
             <CollapsibleSection
               title="Общий обзор всей базы"
@@ -342,7 +339,6 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
                   ))}
                 </div>
               </div>
-
               {/* TL;DR */}
               {tldr && tldr.content.trim() && (
                 <div className="bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg p-3">
@@ -354,7 +350,6 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
                   </div>
                 </div>
               )}
-
               {/* Подразделы h2 — collapsible */}
               <div className="space-y-3">
                 {sections.filter(s => s.title !== 'Общий обзор').map(s => (
@@ -371,7 +366,6 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
                         <ReactMarkdown>{s.content}</ReactMarkdown>
                       </div>
                     </div>
-
                     {/* Свернутый превью-фрагмент, если закрыт */}
                     {!openMap[s.id] && (
                       <div className="border-t px-3 py-2 text-sm text-gray-600">
@@ -386,6 +380,63 @@ const ReportResultsView: React.FC<{ results: SuccessReportResults }> = ({ result
                   </div>
                 ))}
               </div>
+            </CollapsibleSection>
+          );
+        })()}
+
+
+        {results.hypotheses && Object.keys(results.hypotheses).length > 0 && (() => {
+          const totalHyps = Object.values(results.hypotheses).reduce((acc, arr) => acc + (arr?.length ?? 0), 0);
+          return (
+            <CollapsibleSection
+              title="Гипотезы и результаты проверки"
+              icon={<BarChart2 className="w-7 h-7 mr-3 text-indigo-600" />}
+              defaultOpen={false}
+              summaryRight={<span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200">{totalHyps} шт.</span>}
+            >
+              {Object.entries(results.hypotheses).map(([table, hyps]) => (
+                <div key={table} className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-4">
+                  <h3 className="font-mono text-lg text-blue-700 mb-3">{table}</h3>
+
+                  {hyps.length === 0 && (
+                    <p className="text-gray-500 text-sm bg-gray-50 border border-dashed border-gray-200 rounded px-3 py-2">
+                      Нет гипотез для этой таблицы.
+                    </p>
+                  )}
+
+                  {hyps.map((h, idx) => (
+                    <article key={idx} className="mb-4 border-b pb-3">
+                      <header className="flex justify-between items-start gap-3">
+                        <p className="font-semibold leading-snug">{h.hypothesis}</p>
+                        <p className={`text-xs font-bold whitespace-nowrap ${
+                          h.result === 'подтверждена'
+                            ? 'text-green-600'
+                            : h.result === 'опровергнута'
+                              ? 'text-red-600'
+                              : 'text-gray-500'
+                        }`}>
+                          Результат: {h.result} {h.p_value !== null && `(p = ${h.p_value})`}
+                        </p>
+                      </header>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-sm">
+                        <div className="flex gap-2">
+                          <span className="text-gray-500">Тест</span>
+                          <span className="text-gray-800">{h.test}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-gray-500">Колонки</span>
+                          <span className="text-gray-800">{h.columns.join(', ')}</span>
+                        </div>
+                      </div>
+
+                      {h.explanation && (
+                        <p className="text-sm text-gray-700 mt-2">{h.explanation}</p>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              ))}
             </CollapsibleSection>
           );
         })()}
