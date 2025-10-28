@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import { Link } from 'react-router-dom';
-import { Upload, FileText, AlertTriangle, BarChart3, Database, CheckCircle2, Filter, Zap, TrendingUp, Loader, History, FileClock } from "lucide-react";
+import { Upload, FileText, AlertTriangle, BarChart3, Database, CheckCircle2, Filter, Zap, TrendingUp, Loader, History, FileClock, Info } from "lucide-react";
 import { format } from 'date-fns';
 import api from '../api';
 
@@ -310,6 +310,19 @@ const DataCleanerPage = () => {
                             <button onClick={handleUpload} disabled={!file || isLoading} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
                                 {isLoading ? <><Loader className="w-5 h-5 animate-spin" /><span>Загрузка...</span></> : <><Upload className="w-5 h-5" /><span>Загрузить</span></>}
                             </button>
+                        </div>
+                        <div className="mt-5 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3">
+                            <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <h4 className="font-semibold text-blue-800">Важно: Формат Excel-файла</h4>
+                                <p className="text-sm text-blue-700 mt-1">
+                                    Убедитесь, что ваш <code>.xls</code> или <code>.xlsx</code> файл содержит **только таблицу с данными**.
+                                    Заголовки столбцов должны быть в первой строке.
+                                </p>
+                                <p className="text-sm text-blue-700 mt-1">
+                                    Файл не должен содержать заголовков отчета, объединенных ячеек или любого другого текста *над* таблицей.
+                                </p>
+                                                            </div>
                         </div>
                         {error && <p className="mt-4 text-red-600 bg-red-100 p-3 rounded-lg">{error}</p>}
                         {fileId && (
