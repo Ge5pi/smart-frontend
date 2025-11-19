@@ -1,0 +1,21 @@
+{
+  "app": {
+    "title": "Smart Data Tool"
+  },
+  "nav": {
+    "tools": "Tools",
+    "aiAgent": "AI Agent",
+    "charts": "Charts",
+    "dbAnalysis": "DB Analysis",
+    "subscribe": "Subscribe"
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Sign Up",
+    "logout": "Log Out",
+    "loggedInAs": "Logged in as",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password"
+  }
+}

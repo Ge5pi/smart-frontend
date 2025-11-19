@@ -1,0 +1,21 @@
+{
+  "app": {
+    "title": "Smart Data Tool"
+  },
+  "nav": {
+    "tools": "Инструменты",
+    "aiAgent": "AI Агент",
+    "charts": "Графики",
+    "dbAnalysis": "Анализ БД",
+    "subscribe": "Оформить подписку"
+  },
+  "auth": {
+    "login": "Войти",
+    "register": "Регистрация",
+    "logout": "Выйти",
+    "loggedInAs": "Вы вошли как",
+    "email": "Электронная почта",
+    "password": "Пароль",
+    "confirmPassword": "Подтвердите пароль"
+  }
+}
