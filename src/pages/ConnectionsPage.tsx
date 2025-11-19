@@ -4,11 +4,13 @@ import { startDatabaseAnalysis, getConnections, getUserReports } from '../api';
 import type { DatabaseConnection, Report } from '../api';
 import { Database, Server, AlertCircle, Loader2, History, ChevronDown, Clock, FileText, ShieldAlert } from 'lucide-react';
 import { AppContext } from '../contexts/AppContext';
+import { useTranslation } from 'react-i18next';
 
 const REPORT_LIMIT = 1;
 
 const ConnectionsPage: React.FC = () => {
   const { user } = useContext(AppContext)!;
+  const { t, i18n } = useTranslation();
   const [connectionString, setConnectionString] = useState('');
   const [alias, setAlias] = useState('');
   const [dbType, setDbType] = useState<'postgres' | 'sqlserver'>('postgres');
@@ -21,6 +23,7 @@ const ConnectionsPage: React.FC = () => {
   const navigate = useNavigate();
 
   const isReportLimitReached = !!(user && !user.is_active && user.reports_used >= REPORT_LIMIT);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -31,31 +34,30 @@ const ConnectionsPage: React.FC = () => {
         setSavedConnections(connectionsResponse.data);
         setReports(reportsResponse.data);
       } catch (err) {
-        console.error("Не удалось загрузить данные:", err);
+        console.error("Failed to load data:", err);
       }
     };
 
     fetchData();
   }, []);
 
-  // Функция для получения псевдонима подключения по connection_id
   const getConnectionAlias = (connectionId: number | null): string => {
-    if (!connectionId) return 'Неизвестное подключение';
+    if (!connectionId) return t('connections.unknownConnection');
     const connection = savedConnections.find(conn => conn.id === connectionId);
-    return connection?.alias || 'Неизвестное подключение';
+    return connection?.alias || t('connections.unknownConnection');
   };
 
-  // Функция для форматирования даты
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
 
-    if (diffInMinutes < 1) return 'Только что';
-    if (diffInMinutes < 60) return `${diffInMinutes} мин назад`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} ч назад`;
+    if (diffInMinutes < 1) return t('connections.time.justNow');
+    if (diffInMinutes < 60) return t('connections.time.minutesAgo', { count: diffInMinutes });
+    if (diffInMinutes < 1440) return t('connections.time.hoursAgo', { count: Math.floor(diffInMinutes / 60) });
 
-    return date.toLocaleDateString('ru-RU', {
+    const locale = i18n.language === 'ru' ? 'ru-RU' : 'en-US';
+    return date.toLocaleDateString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -64,7 +66,6 @@ const ConnectionsPage: React.FC = () => {
     });
   };
 
-  // Функция для получения цвета статуса
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-50';
@@ -75,15 +76,8 @@ const ConnectionsPage: React.FC = () => {
     }
   };
 
-  // Функция для получения текста статуса
   const getStatusText = (status: string): string => {
-    switch (status) {
-      case 'completed': return 'Завершен';
-      case 'processing': return 'Обрабатывается';
-      case 'queued': return 'В очереди';
-      case 'failed': return 'Ошибка';
-      default: return status;
-    }
+    return t(`connections.status.${status}`, status);
   };
 
   const handleSelectConnection = (conn: DatabaseConnection) => {
@@ -94,11 +88,11 @@ const ConnectionsPage: React.FC = () => {
 
   const handleAnalyze = async () => {
     if (!connectionString.trim() || !alias.trim()) {
-      setError('Псевдоним и строка подключения не могут быть пустыми');
+      setError(t('connections.errors.emptyFields'));
       return;
     }
     if (isReportLimitReached) {
-        setError('Достигнут лимит на создание отчетов. Оформите подписку, чтобы продолжить.');
+        setError(t('connections.errors.limitReached'));
         return;
     }
 
@@ -110,7 +104,7 @@ const ConnectionsPage: React.FC = () => {
       const reportId = response.data.report_id;
       navigate(`/reports/${reportId}`);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail ?? 'Произошла ошибка при анализе базы данных.';
+      const errorMessage = err.response?.data?.detail ?? t('connections.errors.analysisFailed');
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -123,7 +117,6 @@ const ConnectionsPage: React.FC = () => {
       : 'mssql+pyodbc://user:password@host/dbname?driver=ODBC+Driver+17+for+SQL+Server';
   };
 
-  // Сортируем отчеты по дате создания (новые сверху)
   const sortedReports = reports.sort((a, b) =>
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
@@ -131,7 +124,7 @@ const ConnectionsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Анализ базы данных</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">{t('connections.pageTitle')}</h1>
 
         {/* Табы */}
         <div className="flex mb-6 border-b border-gray-200">
@@ -144,7 +137,7 @@ const ConnectionsPage: React.FC = () => {
             }`}
           >
             <Database className="w-5 h-5 inline mr-2" />
-            Новый анализ
+            {t('connections.tabs.newAnalysis')}
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -155,7 +148,7 @@ const ConnectionsPage: React.FC = () => {
             }`}
           >
             <History className="w-5 h-5 inline mr-2" />
-            История отчетов ({reports.length})
+            {t('connections.tabs.reportHistory', { count: reports.length })}
           </button>
         </div>
 
@@ -163,20 +156,23 @@ const ConnectionsPage: React.FC = () => {
         {activeTab === 'new' && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <p className="text-gray-600 mb-6">
-              Введите данные для подключения или выберите сохраненное.
+              {t('connections.description')}
             </p>
 
             {isReportLimitReached && (
               <div className="p-4 mb-6 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center text-yellow-800">
                 <ShieldAlert className="w-6 h-6 mr-3 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold">Лимит отчетов исчерпан</p>
-                  <p className="text-sm">Вы использовали бесплатный отчет ({user?.reports_used} из {REPORT_LIMIT}). Чтобы создавать новые, оформите подписку.</p>
+                  <p className="font-semibold">{t('connections.limit.title')}</p>
+                  <p className="text-sm">
+                    {t('connections.limit.message', { used: user?.reports_used, limit: REPORT_LIMIT })}
+                  </p>
                   <button
-                          onClick={() => navigate('/subscribe')}
-                          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
-                            Оформить подписку
-                        </button>
+                    onClick={() => navigate('/subscribe')}
+                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold"
+                  >
+                    {t('connections.limit.subscribe')}
+                  </button>
                 </div>
               </div>
             )}
@@ -185,7 +181,7 @@ const ConnectionsPage: React.FC = () => {
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
                 <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
                 <div>
-                  <h4 className="font-medium text-red-800">Ошибка</h4>
+                  <h4 className="font-medium text-red-800">{t('connections.errorTitle')}</h4>
                   <p className="text-red-700">{error}</p>
                 </div>
               </div>
@@ -195,7 +191,7 @@ const ConnectionsPage: React.FC = () => {
             {savedConnections.length > 0 && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Выбрать сохраненное подключение
+                  {t('connections.selectSaved')}
                 </label>
                 <div className="relative">
                   <select
@@ -207,7 +203,7 @@ const ConnectionsPage: React.FC = () => {
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
                     defaultValue=""
                   >
-                    <option value="">Выберите подключение...</option>
+                    <option value="">{t('connections.selectPlaceholder')}</option>
                     {savedConnections.map((conn) => (
                       <option key={conn.id} value={conn.id}>
                         {conn.alias} ({conn.db_type})
@@ -222,7 +218,7 @@ const ConnectionsPage: React.FC = () => {
             {/* Тип базы данных */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Тип базы данных
+                {t('connections.dbType')}
               </label>
               <div className="grid grid-cols-2 gap-4">
                 {(['postgres', 'sqlserver'] as const).map((type) => (
@@ -245,13 +241,13 @@ const ConnectionsPage: React.FC = () => {
             {/* Псевдоним */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Псевдоним подключения
+                {t('connections.aliasLabel')}
               </label>
               <input
                 type="text"
                 value={alias}
                 onChange={(e) => setAlias(e.target.value)}
-                placeholder="Например, 'Моя рабочая база'"
+                placeholder={t('connections.aliasPlaceholder')}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 disabled={loading}
               />
@@ -260,7 +256,7 @@ const ConnectionsPage: React.FC = () => {
             {/* Строка подключения */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Строка подключения
+                {t('connections.connectionString')}
               </label>
               <textarea
                 value={connectionString}
@@ -281,12 +277,12 @@ const ConnectionsPage: React.FC = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Анализ...
+                  {t('connections.analyzing')}
                 </>
               ) : (
                 <>
                   <Database className="w-5 h-5 mr-2" />
-                  Начать анализ
+                  {t('connections.startAnalysis')}
                 </>
               )}
             </button>
@@ -299,8 +295,8 @@ const ConnectionsPage: React.FC = () => {
             {sortedReports.length === 0 ? (
               <div className="p-8 text-center">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Пока нет отчетов</h3>
-                <p className="text-gray-500">Создайте свой первый анализ базы данных</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t('connections.noReports')}</h3>
+                <p className="text-gray-500">{t('connections.createFirst')}</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-200">

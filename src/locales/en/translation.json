@@ -63,5 +63,137 @@
       "loadHistory": "Failed to load chat history. You may not have access to this session.",
       "processRequest": "An error occurred while processing your request."
     }
+  },
+  "connections": {
+    "pageTitle": "Database Analysis",
+    "tabs": {
+      "newAnalysis": "New Analysis",
+      "reportHistory": "Report History ({{count}})"
+    },
+    "description": "Enter connection details or select a saved one.",
+    "unknownConnection": "Unknown Connection",
+    "selectSaved": "Select saved connection",
+    "selectPlaceholder": "Select connection...",
+    "dbType": "Database Type",
+    "aliasLabel": "Connection Alias",
+    "aliasPlaceholder": "For example, 'My Work Database'",
+    "connectionString": "Connection String",
+    "startAnalysis": "Start Analysis",
+    "analyzing": "Analyzing...",
+    "errorTitle": "Error",
+    "noReports": "No reports yet",
+    "createFirst": "Create your first database analysis",
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} h ago"
+    },
+    "status": {
+      "completed": "Completed",
+      "processing": "Processing",
+      "queued": "Queued",
+      "failed": "Failed"
+    },
+    "limit": {
+      "title": "Report Limit Reached",
+      "message": "You've used your free report ({{used}} of {{limit}}). To create new ones, subscribe.",
+      "subscribe": "Subscribe"
+    },
+    "errors": {
+      "emptyFields": "Alias and connection string cannot be empty",
+      "limitReached": "Report creation limit reached. Subscribe to continue.",
+      "analysisFailed": "An error occurred during database analysis."
+    }
+  },
+  "dataCleaner": {
+    "pageTitle": "Data Cleaning & Analysis",
+    "sidebar": {
+      "title": "Your Files",
+      "noFiles": "You haven't uploaded any files yet."
+    },
+    "upload": {
+      "title": "1. Upload and Select Data",
+      "subtitle": "Upload a new CSV or Excel file or select an existing one on the left",
+      "selectFile": "Select File",
+      "uploadButton": "Upload",
+      "uploading": "Uploading...",
+      "excelWarning": {
+        "title": "Important: Excel File Format",
+        "description1": "Make sure your .xls or .xlsx file contains only a data table. Column headers should be in the first row.",
+        "description2": "The file should not contain report headers, merged cells, or any other text above the table."
+      },
+      "fileReady": "File \"{{fileName}}\" is ready for analysis!",
+      "fileReadyDescription": "Now you can use the tools below or proceed to the AI agent chat.",
+      "goToAI": "Go to AI Agent →"
+    },
+    "emptyState": {
+      "title": "Get Started",
+      "description": "Upload a new file or select one from previously uploaded in the left panel."
+    },
+    "columns": {
+      "title": "Column Analysis",
+      "subtitle": "Data structure overview",
+      "headers": {
+        "column": "Column",
+        "dataType": "Data Type",
+        "nullValues": "Null Values",
+        "unique": "Unique"
+      }
+    },
+    "imputation": {
+      "title": "Missing Value Imputation",
+      "subtitle": "Select columns for intelligent filling",
+      "missing": "missing",
+      "fillButton": "Fill Missing Values",
+      "filling": "Filling...",
+      "resultsTitle": "Imputation Results",
+      "resultsSubtitle": "Processing statistics for selected columns",
+      "resultHeaders": {
+        "column": "Column",
+        "missingBefore": "Missing Before",
+        "missingAfter": "Missing After",
+        "status": "Status"
+      },
+      "successAlert": "Missing values filled successfully!"
+    },
+    "outliers": {
+      "title": "Outlier Detection",
+      "subtitle": "Select numeric columns for analysis",
+      "unique": "{{count}} unique",
+      "detectButton": "Find Outliers",
+      "analyzing": "Analyzing...",
+      "foundTitle": "Outliers Found: {{count}}",
+      "foundSubtitle": "Anomalous values in data",
+      "noOutliers": "No outliers found in selected columns."
+    },
+    "encoding": {
+      "title": "Categorical Encoding",
+      "subtitle": "Convert text columns to numeric (One-Hot)",
+      "encodeButton": "Encode",
+      "encoding": "Encoding..."
+    },
+    "preview": {
+      "title": "Data Preview",
+      "totalRows": "Total rows: {{count}}",
+      "page": "Page {{current}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "download": {
+      "title": "Download Processed File",
+      "description": "The latest version saved on the server will be downloaded. Make sure you've applied all necessary cleaning operations.",
+      "button": "Download File"
+    },
+    "errors": {
+      "loadPreview": "Failed to load data preview.",
+      "loadFiles": "Failed to load file list:",
+      "analyzeFile": "Failed to analyze selected file.",
+      "encodeColumns": "Error encoding columns.",
+      "uploadFile": "Failed to upload file.",
+      "authError": "Authentication error: token not found. Please log in again.",
+      "imputeMissing": "Error filling missing values.",
+      "detectOutliers": "Failed to detect outliers.",
+      "downloadFile": "Failed to download file."
+    }
   }
 }

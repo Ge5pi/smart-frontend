@@ -3,6 +3,7 @@ import { AppContext } from '../contexts/AppContext';
 import { Link } from 'react-router-dom';
 import { Upload, FileText, AlertTriangle, BarChart3, Database, CheckCircle2, Filter, Zap, TrendingUp, Loader, History, FileClock, Info } from "lucide-react";
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 
 type ImputationResult = {
@@ -22,7 +23,6 @@ const DataCleanerPage = () => {
         userFiles, setUserFiles
     } = useContext(AppContext)!;
 
-    // Локальные состояния, которые используются только на этой странице
     const [selectedOutlierCols, setSelectedOutlierCols] = useState<string[]>([]);
     const [selectedMissingCols, setSelectedMissingCols] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -34,6 +34,7 @@ const DataCleanerPage = () => {
     const [isEncoding, setIsEncoding] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const rowsPerPage = 50;
+    const { t } = useTranslation();
     const [totalRows, setTotalRows] = useState(0);
 
 
@@ -48,7 +49,7 @@ const DataCleanerPage = () => {
                 setTotalRows(res.data.total_rows);
             })
             .catch(_ => {
-                setError("Не удалось загрузить предпросмотр данных.");
+                setError({t('datacleaner.errors.loadPreview')});
             })
             .finally(() => setIsLoading(false));
         }
@@ -62,7 +63,7 @@ const DataCleanerPage = () => {
                     const res = await api.get('/files/me');
                     setUserFiles(res.data);
                 } catch (err) {
-                    console.error("Не удалось загрузить список файлов:", err);
+                    console.error({t('datacleaner.errors.loadFiles')}, err);
                 }
             }
         };
@@ -86,10 +87,10 @@ const DataCleanerPage = () => {
             setFileId(selectedFileId);
             setColumns(res.data.columns);
             setPreview(res.data.preview);
-            setTotalRows(res.data.preview.length); // На бэке стоит поправить, чтобы analyze-existing тоже отдавал total_rows
+            setTotalRows(res.data.preview.length);
             setCurrentPage(1);
         } catch (err: any) {
-            const message = err.response?.data?.detail || "Не удалось проанализировать выбранный файл.";
+            const message = err.response?.data?.detail || {t('datacleaner.errors.analyzeFile')};
             setError(message);
         } finally {
             setIsLoading(false);
@@ -108,20 +109,17 @@ const DataCleanerPage = () => {
         try {
             const res = await api.post(`/encode-categorical/`, formData);
 
-            // --- ИЗМЕНЕНИЕ: Добавил сброс пагинации и обновление total_rows ---
             setColumns(res.data.columns);
             setPreview(res.data.preview);
-            setTotalRows(res.data.preview.length); // Аналогично, бэк должен возвращать total_rows
+            setTotalRows(res.data.preview.length);
             setCurrentPage(1);
 
             setSelectedEncodingCols([]);
             setImputationResult(null);
             setOutlierCount(null);
-
-            // Вместо alert лучше использовать toast-уведомления
             alert(res.data.message);
         } catch (err: any) {
-            setError(err.response?.data?.detail || "Ошибка при кодировании столбцов.");
+            setError(err.response?.data?.detail || {t('datacleaner.errors.encodeColumns')});
         } finally {
             setIsEncoding(false);
         }
@@ -147,7 +145,7 @@ const DataCleanerPage = () => {
         setError(null);
 
         if (!token) {
-            setError("Ошибка аутентификации: токен не найден. Пожалуйста, войдите в систему заново.");
+            setError({t('datacleaner.errors.authError')});
             setIsLoading(false);
             return;
         }
@@ -169,7 +167,7 @@ const DataCleanerPage = () => {
 
         }
         catch (err: any) {
-            const message = err.response?.data?.detail || "Не удалось загрузить файл.";
+            const message = err.response?.data?.detail || {t('datacleaner.errors.uploadFile')};
             setError(message);
         } finally {
             setIsLoading(false);
@@ -180,7 +178,7 @@ const DataCleanerPage = () => {
     const handleImpute = async () => {
         if (!fileId || selectedMissingCols.length === 0) return;
         setIsImputing(true);
-        setError(null); // --- ИЗМЕНЕНИЕ: сбрасываем предыдущие ошибки и результаты ---
+        setError(null);
         setImputationResult(null);
 
         const formData = new FormData();
@@ -190,19 +188,15 @@ const DataCleanerPage = () => {
         try {
             const res = await api.post(`/impute-missing/`, formData);
 
-            // --- ИЗМЕНЕНИЕ: Обновляем всё состояние, а не только локальный result ---
             setImputationResult(res.data);
-            // Важно! Обновляем глобальное состояние для основного превью
             setPreview(res.data.preview);
-            // Если бэк вернет `columns` и `total_rows`, нужно будет их тоже обновить
-            // setColumns(res.data.columns);
             setTotalRows(res.data.preview.length);
-            setCurrentPage(1); // Сбрасываем на первую страницу
-            setSelectedMissingCols([]); // Сбрасываем выбор
+            setCurrentPage(1);
+            setSelectedMissingCols([]);
 
-            alert('Пропуски успешно заполнены!');
+            alert({t('datacleaner.imputation.successAlert')});
         } catch (err: any) {
-            const message = err.response?.data?.detail || "Ошибка при заполнении пропусков.";
+            const message = err.response?.data?.detail || {t('datacleaner.errors.imputeMissing')};
             setError(message);
         } finally {
             setIsImputing(false);
@@ -212,7 +206,7 @@ const DataCleanerPage = () => {
     const handleDetectOutliers = async () => {
         if (!fileId || selectedOutlierCols.length === 0) return;
         setIsAnalyzing(true);
-        setError(null); // --- ИЗМЕНЕНИЕ: сбрасываем предыдущие ошибки и результаты ---
+        setError(null);
         setOutlierCount(null);
         setOutliers([]);
 
@@ -223,10 +217,9 @@ const DataCleanerPage = () => {
             const res = await api.post(`/outliers/`, formData);
             setOutliers(res.data.outlier_preview);
             setOutlierCount(res.data.outlier_count);
-            // --- ИЗМЕНЕНИЕ: Сбрасываем выбор после успешного анализа ---
             setSelectedOutlierCols([]);
         } catch (err: any) {
-            const message = err.response?.data?.detail || "Не удалось определить выбросы.";
+            const message = err.response?.data?.detail || {t('datacleaner.errors.detectOutliers')};
             setError(message);
         } finally {
             setIsAnalyzing(false);
@@ -250,8 +243,8 @@ const DataCleanerPage = () => {
             link.parentNode?.removeChild(link);
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Ошибка при скачивании файла:', error);
-            setError('Не удалось скачать файл.');
+            console.error({t('datacleaner.errors.downloadFile')}, error);
+            setError({t('datacleaner.errors.downloadFile')});
         }
     };
 
@@ -267,7 +260,6 @@ const DataCleanerPage = () => {
         return <Database className="w-4 h-4" />;
     };
 
-    // Остальная часть JSX-разметки остается без изменений
     return (
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -275,7 +267,7 @@ const DataCleanerPage = () => {
                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 p-6 sticky top-28">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="p-2 bg-gradient-to-r from-gray-500 to-gray-700 rounded-xl"><History className="w-6 h-6 text-white" /></div>
-                        <h2 className="text-xl font-semibold text-gray-800">Ваши файлы</h2>
+                        <h2 className="text-xl font-semibold text-gray-800">{t('datacleaner.sidebar.title')}</h2>
                     </div>
                     <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200/50">
                         {userFiles.length > 0 ? userFiles.map(f => (
@@ -291,7 +283,7 @@ const DataCleanerPage = () => {
                                 </div>
                             </button>
                         )) : (
-                            <p className="text-sm text-gray-500 text-center py-4">Вы еще не загружали файлы.</p>
+                            <p className="text-sm text-gray-500 text-center py-4">{t('datacleaner.sidebar.noFiles')}</p>
                         )}
                     </div>
                 </div>
@@ -300,38 +292,36 @@ const DataCleanerPage = () => {
                     <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 p-8">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl"><Upload className="w-6 h-6 text-white" /></div>
-                            <div><h2 className="text-xl font-semibold text-gray-800">1. Загрузка и выбор данных</h2><p className="text-gray-600">Загрузите новый CSV или Excel файл или выберите существующий слева</p></div>
+                            <div><h2 className="text-xl font-semibold text-gray-800">{t('datacleaner.upload.title')}</h2><p className="text-gray-600">{t('datacleaner.upload.subtitle')}</p></div>
                         </div>
                         <div className="flex items-center gap-4">
                             <label htmlFor="file-upload" className="flex items-center gap-2 px-6 py-3 bg-white border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors">
-                                <FileText className="text-gray-600" /> <span className="text-gray-700 font-medium">{file ? file.name : "Выбрать файл"}</span>
+                                <FileText className="text-gray-600" /> <span className="text-gray-700 font-medium">{file ? file.name : {t('datacleaner.upload.selectFile')}}</span>
                                 <input id="file-upload" type="file" accept=".csv, .xlsx, .xls" onChange={handleFileChange} className="hidden" />
                             </label>
                             <button onClick={handleUpload} disabled={!file || isLoading} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                {isLoading ? <><Loader className="w-5 h-5 animate-spin" /><span>Загрузка...</span></> : <><Upload className="w-5 h-5" /><span>Загрузить</span></>}
+                                {isLoading ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.upload.uploading')}</span></> : <><Upload className="w-5 h-5" /><span>{t('datacleaner.upload.uploadButton')}</span></>}
                             </button>
                         </div>
                         <div className="mt-5 p-4 bg-blue-50 border border-blue-200 rounded-lg flex gap-3">
                             <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                             <div>
-                                <h4 className="font-semibold text-blue-800">Важно: Формат Excel-файла</h4>
+                                <h4 className="font-semibold text-blue-800">{t('datacleaner.upload.excelWarning.title')}</h4>
                                 <p className="text-sm text-blue-700 mt-1">
-                                    Убедитесь, что ваш <code>.xls</code> или <code>.xlsx</code> файл содержит <b>только таблицу с данными</b>.
-                                    Заголовки столбцов должны быть в первой строке.
+                                    {t('datacleaner.upload.excelWarning.description1')}
                                 </p>
                                 <p className="text-sm text-blue-700 mt-1">
-                                    Файл не должен содержать заголовков отчета, объединенных ячеек или любого другого текста <b>над</b> таблицей.
+                                    {t('datacleaner.upload.excelWarning.description2')}
                                 </p>
                                                             </div>
                         </div>
                         {error && <p className="mt-4 text-red-600 bg-red-100 p-3 rounded-lg">{error}</p>}
                         {fileId && (
                             <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                                <h3 className="font-semibold text-indigo-800">Файл "{file?.name}" готов к анализу!</h3>
-                                <p className="text-indigo-700 mt-1">Теперь вы можете использовать инструменты ниже или перейти к диалогу с AI-агентом.</p>
-                                {/* ИЗМЕНЕНИЕ: Ссылка теперь ведет на страницу выбора сессий с указанием ID файла */}
+                                <h3 className="font-semibold text-indigo-800">{t('datacleaner.upload.fileReady')}</h3>
+                                <p className="text-indigo-700 mt-1">{t('datacleaner.upload.fileReadyDescription')}</p>
                                 <Link to={`/files/${fileId}/sessions`} className="mt-3 inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
-                                    Перейти к AI Агенту →
+                                    {t('datacleaner.upload.goToAI')}
                                 </Link>
                             </div>
                         )}
@@ -340,8 +330,8 @@ const DataCleanerPage = () => {
                     {!fileId && (
                         <div className="text-center py-16 px-6 bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50">
                             <Database className="w-16 h-16 mx-auto text-gray-300" />
-                            <h2 className="mt-4 text-2xl font-semibold text-gray-800">Начните работу</h2>
-                            <p className="mt-2 text-gray-500">Загрузите новый файл или выберите один из ранее загруженных в панели слева.</p>
+                            <h2 className="mt-4 text-2xl font-semibold text-gray-800">{t('datacleaner.emptyState.title')}</h2>
+                            <p className="mt-2 text-gray-500">{t('datacleaner.emptyState.description')}</p>
                         </div>
                     )}
 
@@ -352,17 +342,18 @@ const DataCleanerPage = () => {
                                 <div className="p-6 border-b border-gray-200/50 bg-gradient-to-r from-green-50 to-emerald-50">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl"><BarChart3 className="w-6 h-6 text-white" /></div>
-                                        <div><h2 className="text-xl font-semibold text-gray-800">Анализ столбцов</h2><p className="text-gray-600">Обзор структуры данных</p></div>
+                                        <div><h2 className="text-xl font-semibold text-gray-800">{t('datacleaner.columns.title')}</h2>
+                                        <p className="text-gray-600">{t('datacleaner.columns.subtitle')}</p></div>
                                     </div>
                                 </div>
                                 <div className="overflow-x-auto max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-green-400 scrollbar-track-green-100">
                                     <table className="w-full">
                                         <thead className="bg-gray-50/80">
                                             <tr>
-                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Столбец</th>
-                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Тип данных</th>
-                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Пустые значения</th>
-                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Уникальные</th>
+                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">{t('datacleaner.columns.headers.column')}</th>
+                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">{t('datacleaner.columns.headers.dataType')}</th>
+                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">{t('datacleaner.columns.headers.nullValues')}</th>
+                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">{t('datacleaner.columns.headers.unique')}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200/50">
@@ -384,7 +375,7 @@ const DataCleanerPage = () => {
                             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl"><Zap className="w-6 h-6 text-white" /></div>
-                                    <div><h2 className="text-xl font-semibold text-gray-800">Заполнение пропусков</h2><p className="text-gray-600">Выберите столбцы для интеллектуального заполнения</p></div>
+                                    <div><h2 className="text-xl font-semibold text-gray-800">{t('datacleaner.imputation.title')}</h2><p className="text-gray-600">{t('datacleaner.imputation.subtitle')}</p></div>
                                 </div>
                                 <div className="max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-400 scrollbar-track-purple-100">
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -397,14 +388,14 @@ const DataCleanerPage = () => {
                                                 }} className="sr-only" />
                                             <div className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedMissingCols.includes(col.column) ? "border-purple-500 bg-purple-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
                                                 <div className="font-medium text-gray-900">{col.column}</div>
-                                                <div className="text-sm text-amber-600">{col.nulls} пропусков</div>
+                                                <div className="text-sm text-amber-600">{col.nulls} {t('datacleaner.imputation.missing')}</div>
                                             </div>
                                         </label>
                                         ))}
                                     </div>
                                 </div>
                                 <button onClick={handleImpute} disabled={isImputing || selectedMissingCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                    {isImputing ? <><Loader className="w-5 h-5 animate-spin" /><span>Заполнение...</span></> : "Заполнить пропуски"}
+                                    {isImputing ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.imputation.filling')}</span></> : {t('datacleaner.imputation.fillButton')}}
                                 </button>
                             </div>
                             )}
@@ -416,8 +407,8 @@ const DataCleanerPage = () => {
                                                         <TrendingUp className="w-6 h-6 text-white" />
                                                     </div>
                                                     <div>
-                                                        <h2 className="text-xl font-semibold text-purple-800">Результаты заполнения</h2>
-                                                        <p className="text-purple-600">Статистика обработки для выбранных столбцов</p>
+                                                        <h2 className="text-xl font-semibold text-purple-800">{t('datacleaner.imputation.resultsTitle')}</h2>
+                                                        <p className="text-purple-600">{t('datacleaner.imputation.resultsSubtitle')}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -425,10 +416,10 @@ const DataCleanerPage = () => {
                                                 <table className="w-full text-sm">
                                                     <thead className="bg-gray-50/80">
                                                         <tr>
-                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">Столбец</th>
-                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">Пропусков до</th>
-                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">Пропусков после</th>
-                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">Статус</th>
+                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">{t('datacleaner.imputation.resultHeaders.column')}</th>
+                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">{t('datacleaner.imputation.resultHeaders.missingBefore')}</th>
+                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">{t('datacleaner.imputation.resultHeaders.missingAfter')}</th>
+                                                            <th className="px-6 py-4 text-left font-semibold text-gray-700">{t('datacleaner.imputation.resultHeaders.status')}</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-gray-200/50">
@@ -452,7 +443,7 @@ const DataCleanerPage = () => {
                             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6">
                                  <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl"><Filter className="w-6 h-6 text-white" /></div>
-                                    <div><h2 className="text-xl font-semibold text-gray-800">Поиск выбросов</h2><p className="text-gray-600">Выберите числовые столбцы для анализа</p></div>
+                                    <div><h2 className="text-xl font-semibold text-gray-800">{t('datacleaner.outliers.title')}</h2><p className="text-gray-600">{t('datacleaner.outliers.subtitle')}</p></div>
                                 </div>
                                 <div className="max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-red-400 scrollbar-track-red-100">
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -465,14 +456,14 @@ const DataCleanerPage = () => {
                                                 }} className="sr-only" />
                                             <div className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedOutlierCols.includes(col.column) ? "border-red-500 bg-red-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
                                                 <div className="font-medium text-gray-900">{col.column}</div>
-                                                <div className="text-sm text-gray-500">{col.unique} уникальных</div>
+                                                <div className="text-sm text-gray-500">{col.unique} {t('datacleaner.outliers.unique')}</div>
                                             </div>
                                         </label>
                                     ))}
                                     </div>
                                 </div>
                                 <button onClick={handleDetectOutliers} disabled={isAnalyzing || selectedOutlierCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                    {isAnalyzing ? <><Loader className="w-5 h-5 animate-spin" /><span>Анализ...</span></> : "Найти выбросы"}
+                                    {isAnalyzing ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.outliers.analyzing')}</span></> : {t('datacleaner.outliers.detectButton')}}
                                 </button>
                             </div>
                             )}
@@ -483,8 +474,8 @@ const DataCleanerPage = () => {
                                     <div className="flex items-center gap-3">
                                     <div className="p-2 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl"><AlertTriangle className="w-6 h-6 text-white" /></div>
                                     <div>
-                                    <h2 className="text-xl font-semibold text-red-800">Обнаружено выбросов: {outlierCount}</h2>
-                                    <p className="text-red-600">Аномальные значения в данных</p></div></div>
+                                    <h2 className="text-xl font-semibold text-red-800">{t('datacleaner.outliers.foundTitle')}{outlierCount}</h2>
+                                    <p className="text-red-600">{t('datacleaner.outliers.foundSubtitle')}</p></div></div>
                                 </div>
                                 {outliers.length > 0 ? (
                                     <div className="overflow-x-auto max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-red-400 scrollbar-track-red-100">
@@ -492,7 +483,7 @@ const DataCleanerPage = () => {
                                         <thead className="bg-red-50/80"><tr>{Object.keys(outliers[0]).map((key) => <th key={key} className="px-6 py-4 text-left text-sm font-semibold text-red-700">{key}</th>)}</tr></thead>
                                         <tbody className="divide-y divide-red-200/50">{outliers.map((row, idx) => (<tr key={idx}>{Object.values(row).map((val: any, i) => <td key={i} className="px-6 py-4 text-red-900">{String(val)}</td>)}</tr>))}</tbody>
                                     </table></div>
-                                ) : <div className="p-6 text-center text-gray-600">Выбросы не найдены в выбранных столбцах.</div>}
+                                ) : <div className="p-6 text-center text-gray-600">{t('datacleaner.outliers.noOutliers')}</div>}
                             </div>
                             )}
 
@@ -500,7 +491,7 @@ const DataCleanerPage = () => {
                                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6">
                                     <div className="flex items-center gap-3 mb-6">
                                         <div className="p-2 bg-gradient-to-r from-cyan-500 to-sky-500 rounded-xl"><Zap className="w-6 h-6 text-white" /></div>
-                                        <div><h2 className="text-xl font-semibold text-gray-800">Кодирование категорий</h2><p className="text-gray-600">Преобразуйте текстовые столбцы в числовые (One-Hot)</p></div>
+                                        <div><h2 className="text-xl font-semibold text-gray-800">{t('datacleaner.encoding.title')}</h2><p className="text-gray-600">{t('datacleaner.encoding.subtitle')}</p></div>
                                     </div>
                                     <div className="max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-400 scrollbar-track-cyan-100">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -513,14 +504,14 @@ const DataCleanerPage = () => {
                                                     }} className="sr-only" />
                                                 <div className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedEncodingCols.includes(col.column) ? "border-cyan-500 bg-cyan-50" : "border-gray-200 bg-white hover:border-gray-300"}`}>
                                                     <div className="font-medium text-gray-900">{col.column}</div>
-                                                    <div className="text-sm text-gray-500">{col.unique} уникальных</div>
+                                                    <div className="text-sm text-gray-500">{col.unique} {t('datacleaner.outliers.unique')}</div>
                                                 </div>
                                             </label>
                                             ))}
                                         </div>
                                     </div>
                                     <button onClick={handleEncode} disabled={isEncoding || selectedEncodingCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                        {isEncoding ? <><Loader className="w-5 h-5 animate-spin" /><span>Кодирование...</span></> : "Закодировать"}
+                                        {isEncoding ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.encoding.encoding')}</span></> : {t('datacleaner.encoding.encodeButton')}}
                                     </button>
                                 </div>
                                 )}
@@ -528,7 +519,7 @@ const DataCleanerPage = () => {
                             {preview.length > 0 && (
                                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden">
                                     <div className="p-6 border-b border-gray-200/50">
-                                    <h2 className="text-xl font-semibold text-gray-800">Предпросмотр данных</h2></div>
+                                    <h2 className="text-xl font-semibold text-gray-800">{t('datacleaner.preview.title')}</h2></div>
                                     <div className="overflow-x-auto max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200/50">
                                     <table className="w-full">
                                         <thead className="bg-gray-50/80">
@@ -539,7 +530,7 @@ const DataCleanerPage = () => {
                                     {totalRows > 0 && (
                                         <div className="flex items-center justify-between p-4 border-t border-gray-200/50">
                                             <span className="text-sm text-gray-700">
-                                                Всего строк: <span className="font-semibold">{totalRows}</span>
+                                                {t('datacleaner.preview.totalRows')} <span className="font-semibold">{totalRows}</span>
                                             </span>
                                             <div className="flex items-center gap-2">
                                                 <button
@@ -547,17 +538,17 @@ const DataCleanerPage = () => {
                                                     disabled={currentPage === 1 || isLoading}
                                                     className="px-3 py-1 border rounded-md disabled:opacity-50"
                                                 >
-                                                    Назад
+                                                    {t('datacleaner.preview.previous')}
                                                 </button>
                                                 <span className="text-sm text-gray-700">
-                                                    Страница {currentPage} из {Math.ceil(totalRows / rowsPerPage)}
+                                                    {t('datacleaner.preview.page')}
                                                 </span>
                                                 <button
                                                     onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalRows / rowsPerPage), p + 1))}
                                                     disabled={currentPage === Math.ceil(totalRows / rowsPerPage) || isLoading}
                                                     className="px-3 py-1 border rounded-md disabled:opacity-50"
                                                 >
-                                                    Вперед
+                                                    {t('datacleaner.preview.next')}
                                                 </button>
                                             </div>
                                         </div>
@@ -569,10 +560,10 @@ const DataCleanerPage = () => {
 
                             {fileId && (
                             <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6">
-                                <h2 className="text-xl font-semibold mb-2">Скачать обработанный файл</h2>
-                                <p className="text-sm text-gray-600 mb-4">Будет скачана последняя сохраненная на сервере версия файла. Убедитесь, что вы применили все необходимые операции по очистке.</p>
+                                <h2 className="text-xl font-semibold mb-2">{t('datacleaner.download.title')}</h2>
+                                <p className="text-sm text-gray-600 mb-4">{t('datacleaner.download.description')}</p>
                                 <button onClick={handleDownload} className="px-6 py-3 bg-green-600 text-white rounded-xl font-medium">
-                                    Скачать файл
+                                    {t('datacleaner.download.button')}
                                 </button>
                             </div>
                             )}
