@@ -17,5 +17,32 @@
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm Password"
+  },
+  "charts": {
+    "title": "Data Visualization",
+    "subtitle": "Select chart type and columns",
+    "types": {
+      "histogram": "Histogram",
+      "pie": "Pie Chart",
+      "line": "Line Chart",
+      "area": "Area Chart",
+      "scatter": "Scatter Plot",
+      "bubble": "Bubble Chart",
+      "boxplot": "Box Plot"
+    },
+    "selectX": "Select X",
+    "selectY": "Select Y",
+    "selectColumn": "Select column",
+    "selectSize": "Size",
+    "generate": "Generate",
+    "points": "Points",
+    "titles": {
+      "distribution": "Distribution of '{{column}}'",
+      "shares": "Shares of '{{column}}'",
+      "relationship": "Relationship between '{{col1}}' and '{{col2}}'",
+      "trend": "Trend of '{{col2}}' by '{{col1}}'",
+      "bubble": "Bubbles by '{{col1}}', '{{col2}}', '{{col3}}'",
+      "boxplot": "Box plot for '{{column}}'"
+    }
   }
 }

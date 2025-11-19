@@ -58,7 +58,6 @@ const ChartsPage = () => {
           console.error("Ошибка при загрузке данных", err);
           setError("Не удалось загрузить данные о столбцах.");
         })
-        
         .finally(() => setIsPageLoading(false));
     } else {
       setIsPageLoading(false);
