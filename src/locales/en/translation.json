@@ -105,7 +105,7 @@
       "analysisFailed": "An error occurred during database analysis."
     }
   },
-  "dataCleaner": {
+  "datacleaner": {
     "pageTitle": "Data Cleaning & Analysis",
     "sidebar": {
       "title": "Your Files",
@@ -143,7 +143,7 @@
     "imputation": {
       "title": "Missing Value Imputation",
       "subtitle": "Select columns for intelligent filling",
-      "missing": "missing",
+      "missing": "{{count}} missing",
       "fillButton": "Fill Missing Values",
       "filling": "Filling...",
       "resultsTitle": "Imputation Results",
