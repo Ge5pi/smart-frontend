@@ -318,7 +318,9 @@ const DataCleanerPage = () => {
                         {error && <p className="mt-4 text-red-600 bg-red-100 p-3 rounded-lg">{error}</p>}
                         {fileId && (
                             <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                                <h3 className="font-semibold text-indigo-800">{t('datacleaner.upload.fileReady')}</h3>
+                                <h3 className="font-semibold text-indigo-800">
+  {t('datacleaner.upload.fileReady', { fileName: file?.name })}
+</h3>
                                 <p className="text-indigo-700 mt-1">{t('datacleaner.upload.fileReadyDescription')}</p>
                                 <Link to={`/files/${fileId}/sessions`} className="mt-3 inline-block px-5 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
                                     {t('datacleaner.upload.goToAI')}
@@ -395,7 +397,7 @@ const DataCleanerPage = () => {
                                     </div>
                                 </div>
                                 <button onClick={handleImpute} disabled={isImputing || selectedMissingCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                    {isImputing ? <><Loader className="w-5 h-5 animate-spin" /><span>t('datacleaner.imputation.filling')</span></> : t('datacleaner.imputation.fillButton')}
+                                    {isImputing ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.imputation.filling')}</span></> : t('datacleaner.imputation.fillButton')}
                                 </button>
                             </div>
                             )}
@@ -463,7 +465,7 @@ const DataCleanerPage = () => {
                                     </div>
                                 </div>
                                 <button onClick={handleDetectOutliers} disabled={isAnalyzing || selectedOutlierCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                    {isAnalyzing ? <><Loader className="w-5 h-5 animate-spin" /><span>t('datacleaner.outliers.analyzing')</span></> : t('datacleaner.outliers.detectButton')}
+                                    {isAnalyzing ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.outliers.analyzing')}</span></> : t('datacleaner.outliers.detectButton')}
                                 </button>
                             </div>
                             )}
@@ -474,7 +476,9 @@ const DataCleanerPage = () => {
                                     <div className="flex items-center gap-3">
                                     <div className="p-2 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl"><AlertTriangle className="w-6 h-6 text-white" /></div>
                                     <div>
-                                    <h2 className="text-xl font-semibold text-red-800">{t('datacleaner.outliers.foundTitle')}{outlierCount}</h2>
+                                   <h2 className="text-xl font-semibold text-red-800">
+  {t('datacleaner.outliers.foundTitle', { count: outlierCount })}
+</h2>
                                     <p className="text-red-600">{t('datacleaner.outliers.foundSubtitle')}</p></div></div>
                                 </div>
                                 {outliers.length > 0 ? (
@@ -511,7 +515,7 @@ const DataCleanerPage = () => {
                                         </div>
                                     </div>
                                     <button onClick={handleEncode} disabled={isEncoding || selectedEncodingCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                        {isEncoding ? <><Loader className="w-5 h-5 animate-spin" /><span>t('datacleaner.encoding.encoding')</span></> : t('datacleaner.encoding.encodeButton')}
+                                        {isEncoding ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.encoding.encoding')}</span></> : t('datacleaner.encoding.encodeButton')}
                                     </button>
                                 </div>
                                 )}
@@ -530,7 +534,7 @@ const DataCleanerPage = () => {
                                     {totalRows > 0 && (
                                         <div className="flex items-center justify-between p-4 border-t border-gray-200/50">
                                             <span className="text-sm text-gray-700">
-                                                {t('datacleaner.preview.totalRows')} <span className="font-semibold">{totalRows}</span>
+                                                {t('datacleaner.preview.totalRows', { count: totalRows })}</span>
                                             </span>
                                             <div className="flex items-center gap-2">
                                                 <button
@@ -541,7 +545,10 @@ const DataCleanerPage = () => {
                                                     {t('datacleaner.preview.previous')}
                                                 </button>
                                                 <span className="text-sm text-gray-700">
-                                                    {t('datacleaner.preview.page')}
+                                                   {t('datacleaner.preview.page', {
+  current: currentPage,
+  total: Math.ceil(totalRows / rowsPerPage)
+})}
                                                 </span>
                                                 <button
                                                     onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalRows / rowsPerPage), p + 1))}
