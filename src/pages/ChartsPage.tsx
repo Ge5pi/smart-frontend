@@ -31,10 +31,11 @@ ChartJS.register(
   BoxPlotController,
   BoxAndWiskers
 );
+import { useTranslation } from 'react-i18next';
 
 const ChartsPage = () => {
   const { fileId, token } = useContext(AppContext)!;
-
+  const { t, i18n } = useTranslation();
   const [columns, setColumns] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [chartType, setChartType] = useState('histogram');
@@ -126,66 +127,101 @@ const ChartsPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl">
-            <TrendingUp className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">Визуализация данных</h2>
-            <p className="text-gray-600">Выберите тип графика и столбцы</p>
-          </div>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl">
+          <TrendingUp className="w-6 h-6 text-white" />
         </div>
-
-        <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-lg mb-6">
-          <select value={chartType} onChange={e => setChartType(e.target.value)} className="p-2 border-gray-300 border rounded-md shadow-sm">
-            <option value="histogram">Гистограмма</option>
-            <option value="pie">Круговая диаграмма</option>
-            <option value="line">Линейный график</option>
-            <option value="area">Диаграмма с областями</option>
-            <option value="scatter">Диаграмма рассеяния</option>
-            <option value="bubble">Пузырьковая диаграмма</option>
-            <option value="boxplot">Ящик с усами</option>
-          </select>
-
-          <select value={selectedChartCol1} onChange={e => setSelectedChartCol1(e.target.value)} className="p-2 border-gray-300 border rounded-md shadow-sm">
-            <option value="">{['scatter', 'line', 'area', 'bubble'].includes(chartType) ? 'Выберите X' : 'Выберите столбец'}</option>
-            {columns.map(c => <option key={`col1-${c.column}`} value={c.column}>{c.column}</option>)}
-          </select>
-
-          {['scatter', 'line', 'area', 'bubble'].includes(chartType) && (
-            <select value={selectedChartCol2} onChange={e => setSelectedChartCol2(e.target.value)} className="p-2 border-gray-300 border rounded-md shadow-sm">
-              <option value="">Выберите Y</option>
-              {columns.map(c => <option key={`col2-${c.column}`} value={c.column}>{c.column}</option>)}
-            </select>
-          )}
-
-          {chartType === 'bubble' && (
-            <select value={selectedChartCol3} onChange={e => setSelectedChartCol3(e.target.value)} className="p-2 border-gray-300 border rounded-md shadow-sm">
-              <option value="">Размер</option>
-              {columns.map(c => <option key={`col3-${c.column}`} value={c.column}>{c.column}</option>)}
-            </select>
-          )}
-
-          <button onClick={handleGenerateChart} disabled={isChartLoading} className="px-5 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400 font-semibold hover:bg-blue-700 transition-colors">
-            {isChartLoading ? <Loader className="w-5 h-5 animate-spin" /> : 'Построить'}
-          </button>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">{t('charts.title')}</h2>
+          <p className="text-gray-600">{t('charts.subtitle')}</p>
         </div>
+      </div>
 
-        <div className="min-h-[500px] p-4 border border-gray-200 rounded-lg bg-white relative">
-          {isChartLoading && <div className="absolute inset-0 flex justify-center items-center bg-white/50"><Loader className="w-8 h-8 animate-spin" /></div>}
-          {!isChartLoading && error && <div className="flex justify-center items-center h-full text-red-600">{error}</div>}
+      <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-lg mb-6">
+        <select
+          value={chartType}
+          onChange={e => setChartType(e.target.value)}
+          className="p-2 border-gray-300 border rounded-md shadow-sm"
+        >
+          <option value="histogram">{t('charts.types.histogram')}</option>
+          <option value="pie">{t('charts.types.pie')}</option>
+          <option value="line">{t('charts.types.line')}</option>
+          <option value="area">{t('charts.types.area')}</option>
+          <option value="scatter">{t('charts.types.scatter')}</option>
+          <option value="bubble">{t('charts.types.bubble')}</option>
+          <option value="boxplot">{t('charts.types.boxplot')}</option>
+        </select>
 
-          {!isChartLoading && !error && chartData && chartData.chart_type === 'histogram' && (
-            <Bar options={{
+        <select
+          value={selectedChartCol1}
+          onChange={e => setSelectedChartCol1(e.target.value)}
+          className="p-2 border-gray-300 border rounded-md shadow-sm"
+        >
+          <option value="">
+            {['scatter', 'line', 'area', 'bubble'].includes(chartType)
+              ? t('charts.selectX')
+              : t('charts.selectColumn')}
+          </option>
+          {columns.map(c => <option key={`col1-${c.column}`} value={c.column}>{c.column}</option>)}
+        </select>
+
+        {['scatter', 'line', 'area', 'bubble'].includes(chartType) && (
+          <select
+            value={selectedChartCol2}
+            onChange={e => setSelectedChartCol2(e.target.value)}
+            className="p-2 border-gray-300 border rounded-md shadow-sm"
+          >
+            <option value="">{t('charts.selectY')}</option>
+            {columns.map(c => <option key={`col2-${c.column}`} value={c.column}>{c.column}</option>)}
+          </select>
+        )}
+
+        {chartType === 'bubble' && (
+          <select
+            value={selectedChartCol3}
+            onChange={e => setSelectedChartCol3(e.target.value)}
+            className="p-2 border-gray-300 border rounded-md shadow-sm"
+          >
+            <option value="">{t('charts.selectSize')}</option>
+            {columns.map(c => <option key={`col3-${c.column}`} value={c.column}>{c.column}</option>)}
+          </select>
+        )}
+
+        <button
+          onClick={handleGenerateChart}
+          disabled={isChartLoading}
+          className="px-5 py-2 bg-blue-600 text-white rounded-md disabled:bg-gray-400 font-semibold hover:bg-blue-700 transition-colors"
+        >
+          {isChartLoading ? <Loader className="w-5 h-5 animate-spin" /> : t('charts.generate')}
+        </button>
+      </div>
+
+      <div className="min-h-[500px] p-4 border border-gray-200 rounded-lg bg-white relative">
+        {isChartLoading && (
+          <div className="absolute inset-0 flex justify-center items-center bg-white/50">
+            <Loader className="w-8 h-8 animate-spin" />
+          </div>
+        )}
+        {!isChartLoading && error && (
+          <div className="flex justify-center items-center h-full text-red-600">{error}</div>
+        )}
+
+        {!isChartLoading && !error && chartData && chartData.chart_type === 'histogram' && (
+          <Bar
+            options={{
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
                 legend: { display: false },
-                title: { display: true, text: `Распределение '${selectedChartCol1}'` }
+                title: {
+                  display: true,
+                  text: t('charts.titles.distribution', { column: selectedChartCol1 })
+                }
               }
-            }} data={{
+            }}
+            data={{
               labels: chartData.data.labels,
               datasets: [{
                 label: selectedChartCol1,
@@ -194,42 +230,72 @@ const ChartsPage = () => {
                 borderColor: 'rgba(59, 130, 246, 1)',
                 borderWidth: 1
               }]
-            }} />
-          )}
+            }}
+          />
+        )}
 
-          {!isChartLoading && !error && chartData && chartData.chart_type === 'pie' && (
-            <div className="w-full h-full flex justify-center items-center">
-              <div className="max-w-[450px] max-h-[450px]">
-                <Pie options={{ responsive: true, plugins: { title: { display: true, text: `Доли '${selectedChartCol1}'` } } }} data={{
+        {!isChartLoading && !error && chartData && chartData.chart_type === 'pie' && (
+          <div className="w-full h-full flex justify-center items-center">
+            <div className="max-w-[450px] max-h-[450px]">
+              <Pie
+                options={{
+                  responsive: true,
+                  plugins: {
+                    title: {
+                      display: true,
+                      text: t('charts.titles.shares', { column: selectedChartCol1 })
+                    }
+                  }
+                }}
+                data={{
                   labels: chartData.data.labels,
                   datasets: [{
                     label: selectedChartCol1,
                     data: chartData.data.values,
                     backgroundColor: ['#4ade80', '#60a5fa', '#facc15', '#f87171', '#c084fc', '#fb923c', '#818cf8']
                   }]
-                }} />
-              </div>
+                }}
+              />
             </div>
-          )}
+          </div>
+        )}
 
-          {!isChartLoading && !error && chartData && chartData.chart_type === 'scatter' && (
-            <Scatter options={{
+        {!isChartLoading && !error && chartData && chartData.chart_type === 'scatter' && (
+          <Scatter
+            options={{
               responsive: true,
-              plugins: { title: { display: true, text: `Зависимость '${selectedChartCol1}' от '${selectedChartCol2}'` } }
-            }} data={{
+              plugins: {
+                title: {
+                  display: true,
+                  text: t('charts.titles.relationship', { col1: selectedChartCol1, col2: selectedChartCol2 })
+                }
+              }
+            }}
+            data={{
               datasets: [{
-                label: 'Точки',
-                data: chartData.data.points.map((p: any) => ({ x: p[selectedChartCol1], y: p[selectedChartCol2] })),
+                label: t('charts.points'),
+                data: chartData.data.points.map((p: any) => ({
+                  x: p[selectedChartCol1],
+                  y: p[selectedChartCol2]
+                })),
                 backgroundColor: 'rgba(59, 130, 246, 0.6)'
               }]
-            }} />
-          )}
+            }}
+          />
+        )}
 
-          {!isChartLoading && !error && chartData && ['line', 'area'].includes(chartData.chart_type) && (
-            <Line options={{
+        {!isChartLoading && !error && chartData && ['line', 'area'].includes(chartData.chart_type) && (
+          <Line
+            options={{
               responsive: true,
-              plugins: { title: { display: true, text: `Тренд '${selectedChartCol2}' по '${selectedChartCol1}'` } }
-            }} data={{
+              plugins: {
+                title: {
+                  display: true,
+                  text: t('charts.titles.trend', { col1: selectedChartCol1, col2: selectedChartCol2 })
+                }
+              }
+            }}
+            data={{
               labels: chartData.data.labels,
               datasets: [{
                 label: selectedChartCol2,
@@ -239,14 +305,26 @@ const ChartsPage = () => {
                 tension: 0.1,
                 fill: chartData.chart_type === 'area'
               }]
-            }} />
-          )}
+            }}
+          />
+        )}
 
-          {!isChartLoading && !error && chartData && chartData.chart_type === 'bubble' && (
-            <Bubble options={{
+        {!isChartLoading && !error && chartData && chartData.chart_type === 'bubble' && (
+          <Bubble
+            options={{
               responsive: true,
-              plugins: { title: { display: true, text: `Пузырьки по '${selectedChartCol1}', '${selectedChartCol2}', '${selectedChartCol3}'` } }
-            }} data={{
+              plugins: {
+                title: {
+                  display: true,
+                  text: t('charts.titles.bubble', {
+                    col1: selectedChartCol1,
+                    col2: selectedChartCol2,
+                    col3: selectedChartCol3
+                  })
+                }
+              }
+            }}
+            data={{
               datasets: [{
                 label: selectedChartCol3,
                 data: chartData.data.points.map((p: any) => ({
@@ -256,39 +334,39 @@ const ChartsPage = () => {
                 })),
                 backgroundColor: 'rgba(59, 130, 246, 0.6)'
               }]
-            }} />
-          )}
+            }}
+          />
+        )}
 
-          {!isChartLoading && !error && chartData && chartData.chart_type === 'boxplot' && (
-  <Chart
-    type="boxplot"
-    options={{
-      responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: `Ящик с усами для '${selectedChartCol1}'`
-        },
-        legend: { display: false }
-      }
-    }}
-    data={{
-      labels: [selectedChartCol1],
-      datasets: [{
-        label: selectedChartCol1,
-        data: [chartData.data], // Пример: [min, q1, median, q3, max]
-        backgroundColor: 'rgba(192, 75, 192, 0.6)',
-        borderColor: 'rgb(192, 75, 192)',
-        borderWidth: 1,
-        itemRadius: 0
-      }]
-    }}
-  />
-)}
-        </div>
+        {!isChartLoading && !error && chartData && chartData.chart_type === 'boxplot' && (
+          <Chart
+            type="boxplot"
+            options={{
+              responsive: true,
+              plugins: {
+                title: {
+                  display: true,
+                  text: t('charts.titles.boxplot', { column: selectedChartCol1 })
+                },
+                legend: { display: false }
+              }
+            }}
+            data={{
+              labels: [selectedChartCol1],
+              datasets: [{
+                label: selectedChartCol1,
+                data: [chartData.data],
+                backgroundColor: 'rgba(192, 75, 192, 0.6)',
+                borderColor: 'rgb(192, 75, 192)',
+                borderWidth: 1,
+                itemRadius: 0
+              }]
+            }}
+          />
+        )}
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 export default ChartsPage;
