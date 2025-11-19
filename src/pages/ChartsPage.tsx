@@ -35,7 +35,7 @@ import { useTranslation } from 'react-i18next';
 
 const ChartsPage = () => {
   const { fileId, token } = useContext(AppContext)!;
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [columns, setColumns] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [chartType, setChartType] = useState('histogram');
