@@ -49,7 +49,7 @@ const DataCleanerPage = () => {
                 setTotalRows(res.data.total_rows);
             })
             .catch(_ => {
-                setError({t('datacleaner.errors.loadPreview')});
+                setError(t('datacleaner.errors.loadPreview'));
             })
             .finally(() => setIsLoading(false));
         }
@@ -63,7 +63,7 @@ const DataCleanerPage = () => {
                     const res = await api.get('/files/me');
                     setUserFiles(res.data);
                 } catch (err) {
-                    console.error({t('datacleaner.errors.loadFiles')}, err);
+                    console.error(t('datacleaner.errors.loadFiles'), err);
                 }
             }
         };
@@ -90,7 +90,7 @@ const DataCleanerPage = () => {
             setTotalRows(res.data.preview.length);
             setCurrentPage(1);
         } catch (err: any) {
-            const message = err.response?.data?.detail || {t('datacleaner.errors.analyzeFile')};
+            const message = err.response?.data?.detail || t('datacleaner.errors.analyzeFile');
             setError(message);
         } finally {
             setIsLoading(false);
@@ -119,7 +119,7 @@ const DataCleanerPage = () => {
             setOutlierCount(null);
             alert(res.data.message);
         } catch (err: any) {
-            setError(err.response?.data?.detail || {t('datacleaner.errors.encodeColumns')});
+            setError(err.response?.data?.detail || t('datacleaner.errors.encodeColumns'));
         } finally {
             setIsEncoding(false);
         }
@@ -145,7 +145,7 @@ const DataCleanerPage = () => {
         setError(null);
 
         if (!token) {
-            setError({t('datacleaner.errors.authError')});
+            setError(t('datacleaner.errors.authError'));
             setIsLoading(false);
             return;
         }
@@ -167,7 +167,7 @@ const DataCleanerPage = () => {
 
         }
         catch (err: any) {
-            const message = err.response?.data?.detail || {t('datacleaner.errors.uploadFile')};
+            const message = err.response?.data?.detail || t('datacleaner.errors.uploadFile');
             setError(message);
         } finally {
             setIsLoading(false);
@@ -194,9 +194,9 @@ const DataCleanerPage = () => {
             setCurrentPage(1);
             setSelectedMissingCols([]);
 
-            alert({t('datacleaner.imputation.successAlert')});
+            alert(t('datacleaner.imputation.successAlert'));
         } catch (err: any) {
-            const message = err.response?.data?.detail || {t('datacleaner.errors.imputeMissing')};
+            const message = err.response?.data?.detail || t('datacleaner.errors.imputeMissing');
             setError(message);
         } finally {
             setIsImputing(false);
@@ -219,7 +219,7 @@ const DataCleanerPage = () => {
             setOutlierCount(res.data.outlier_count);
             setSelectedOutlierCols([]);
         } catch (err: any) {
-            const message = err.response?.data?.detail || {t('datacleaner.errors.detectOutliers')};
+            const message = err.response?.data?.detail || t('datacleaner.errors.detectOutliers');
             setError(message);
         } finally {
             setIsAnalyzing(false);
@@ -243,8 +243,8 @@ const DataCleanerPage = () => {
             link.parentNode?.removeChild(link);
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error({t('datacleaner.errors.downloadFile')}, error);
-            setError({t('datacleaner.errors.downloadFile')});
+            console.error(t('datacleaner.errors.downloadFile'), error);
+            setError(t('datacleaner.errors.downloadFile'));
         }
     };
 
@@ -296,7 +296,7 @@ const DataCleanerPage = () => {
                         </div>
                         <div className="flex items-center gap-4">
                             <label htmlFor="file-upload" className="flex items-center gap-2 px-6 py-3 bg-white border-2 rounded-xl cursor-pointer hover:border-blue-500 transition-colors">
-                                <FileText className="text-gray-600" /> <span className="text-gray-700 font-medium">{file ? file.name : {t('datacleaner.upload.selectFile')}}</span>
+                                <FileText className="text-gray-600" /> <span className="text-gray-700 font-medium">{file ? file.name : t('datacleaner.upload.selectFile')}</span>
                                 <input id="file-upload" type="file" accept=".csv, .xlsx, .xls" onChange={handleFileChange} className="hidden" />
                             </label>
                             <button onClick={handleUpload} disabled={!file || isLoading} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
@@ -395,7 +395,7 @@ const DataCleanerPage = () => {
                                     </div>
                                 </div>
                                 <button onClick={handleImpute} disabled={isImputing || selectedMissingCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                    {isImputing ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.imputation.filling')}</span></> : {t('datacleaner.imputation.fillButton')}}
+                                    {isImputing ? <><Loader className="w-5 h-5 animate-spin" /><span>t('datacleaner.imputation.filling')</span></> : t('datacleaner.imputation.fillButton')}
                                 </button>
                             </div>
                             )}
@@ -463,7 +463,7 @@ const DataCleanerPage = () => {
                                     </div>
                                 </div>
                                 <button onClick={handleDetectOutliers} disabled={isAnalyzing || selectedOutlierCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                    {isAnalyzing ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.outliers.analyzing')}</span></> : {t('datacleaner.outliers.detectButton')}}
+                                    {isAnalyzing ? <><Loader className="w-5 h-5 animate-spin" /><span>t('datacleaner.outliers.analyzing')</span></> : t('datacleaner.outliers.detectButton')}
                                 </button>
                             </div>
                             )}
@@ -511,7 +511,7 @@ const DataCleanerPage = () => {
                                         </div>
                                     </div>
                                     <button onClick={handleEncode} disabled={isEncoding || selectedEncodingCols.length === 0} className="mt-6 flex items-center gap-2 px-6 py-3 bg-cyan-600 text-white rounded-xl disabled:bg-gray-400 transition-colors">
-                                        {isEncoding ? <><Loader className="w-5 h-5 animate-spin" /><span>{t('datacleaner.encoding.encoding')}</span></> : {t('datacleaner.encoding.encodeButton')}}
+                                        {isEncoding ? <><Loader className="w-5 h-5 animate-spin" /><span>t('datacleaner.encoding.encoding')</span></> : t('datacleaner.encoding.encodeButton')}
                                     </button>
                                 </div>
                                 )}
