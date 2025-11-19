@@ -44,5 +44,24 @@
       "bubble": "Bubbles by '{{col1}}', '{{col2}}', '{{col3}}'",
       "boxplot": "Box plot for '{{column}}'"
     }
+  },
+  "chat": {
+    "title": "AI Agent Dialogue",
+    "subtitle": "Ask questions in natural language",
+    "session": "Session",
+    "loadingHistory": "Loading chat history...",
+    "loadingSession": "Loading session...",
+    "invalidSession": "Invalid session ID.",
+    "noSessionAlert": "Session ID not specified. Please select a chat from the list.",
+    "inputPlaceholder": "For example: 'show top 5 rows by salary'",
+    "limit": {
+      "title": "Message Limit Reached",
+      "message": "You've used all free messages ({{used}} of {{limit}}). To continue, subscribe.",
+      "subscribe": "Subscribe"
+    },
+    "errors": {
+      "loadHistory": "Failed to load chat history. You may not have access to this session.",
+      "processRequest": "An error occurred while processing your request."
+    }
   }
 }
