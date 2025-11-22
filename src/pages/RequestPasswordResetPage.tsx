@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../api';
+import api from '../api';
 import { Mail, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
