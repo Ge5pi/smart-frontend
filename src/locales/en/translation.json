@@ -375,5 +375,65 @@
     "successMessage1": "We have received your request and sent a confirmation to your email",
     "successMessage2": "Our managers will contact you within an hour.",
     "backToHome": "Back to Home"
+  },
+  "report": {
+    "tabs": {
+      "analysis": "Analysis",
+      "charts": "Charts"
+    },
+    "alerts": {
+      "error": "Error",
+      "info": "Info",
+      "notFound": "Report not found or empty.",
+      "loadError": "Error loading the report.",
+      "noCharts": "No charts were generated for this report."
+    },
+    "sections": {
+      "analysisByTables": "Analysis by Tables",
+      "jointTableAnalysis": "Join Tables Analysis",
+      "overallSummary": "Overall Database Summary",
+      "hypotheses": "Hypotheses and Test Results",
+      "hypothesesCount": "pcs.",
+      "noHypotheses": "No hypotheses for this table.",
+      "result": "Result",
+      "test": "Test",
+      "columns": "Columns",
+      "clustering": "Data Clustering",
+      "clusters": "clusters"
+    },
+    "tables": {
+      "column": "Column",
+      "correlatesWith": "Correlates with",
+      "coefficient": "Coefficient",
+      "notAvailable": "N/A"
+    },
+    "tags": {
+      "trends": "Trends",
+      "links": "Links",
+      "anomalies": "Anomalies",
+      "risks": "Risks",
+      "checks": "Checks"
+    },
+    "hypothesisResults": {
+      "confirmed": "confirmed",
+      "rejected": "rejected",
+      "neutral": "neutral"
+    },
+    "clusters": {
+      "sizes": "Cluster Sizes",
+      "cluster": "Cluster",
+      "importantFeatures": "Important Features",
+      "profiles": "Cluster Profiles (average feature values)",
+      "feature": "Feature",
+      "interpretation": "Cluster Interpretation"
+    },
+    "charts": {
+      "forSource": "Charts for:",
+      "chartFor": "Chart for {{source}} #{{number}}"
+    },
+    "summary": {
+      "toc": "Table of Contents",
+      "tldr": "TL;DR"
+    }
   }
 }

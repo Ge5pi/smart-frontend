@@ -375,5 +375,65 @@
     "successMessage1": "Мы получили вашу заявку и отправили подтверждение на вашу почту",
     "successMessage2": "Наши менеджеры свяжутся с вами в течение часа.",
     "backToHome": "Вернуться на главную"
+  },
+  "report": {
+    "tabs": {
+      "analysis": "Анализ",
+      "charts": "Графики"
+    },
+    "alerts": {
+      "error": "Ошибка",
+      "info": "Информация",
+      "notFound": "Отчет не найден или пуст.",
+      "loadError": "Произошла ошибка при загрузке отчета.",
+      "noCharts": "Для этого отчета не было сгенерировано графиков."
+    },
+    "sections": {
+      "analysisByTables": "Анализ по таблицам",
+      "jointTableAnalysis": "Анализ межтабличных связей (JOINs)",
+      "overallSummary": "Общий обзор всей базы",
+      "hypotheses": "Гипотезы и результаты проверки",
+      "hypothesesCount": "шт.",
+      "noHypotheses": "Нет гипотез для этой таблицы.",
+      "result": "Результат",
+      "test": "Тест",
+      "columns": "Колонки",
+      "clustering": "Кластеризация данных",
+      "clusters": "кластеров"
+    },
+    "tables": {
+      "column": "Столбец",
+      "correlatesWith": "Коррелирует с",
+      "coefficient": "Коэффициент",
+      "notAvailable": "N/A"
+    },
+    "tags": {
+      "trends": "Тренды",
+      "links": "Связи",
+      "anomalies": "Аномалии",
+      "risks": "Риски",
+      "checks": "Проверки"
+    },
+    "hypothesisResults": {
+      "confirmed": "подтверждена",
+      "rejected": "опровергнута",
+      "neutral": "без результата"
+    },
+    "clusters": {
+      "sizes": "Размеры кластеров",
+      "cluster": "Кластер",
+      "importantFeatures": "Важные признаки",
+      "profiles": "Профили кластеров (средние значения признаков)",
+      "feature": "Признак",
+      "interpretation": "Интерпретация кластеров"
+    },
+    "charts": {
+      "forSource": "Графики для:",
+      "chartFor": "График для {{source}} #{{number}}"
+    },
+    "summary": {
+      "toc": "Оглавление",
+      "tldr": "TL;DR"
+    }
   }
 }
