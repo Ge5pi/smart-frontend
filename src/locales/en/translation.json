@@ -386,7 +386,8 @@
       "info": "Info",
       "notFound": "Report not found or empty.",
       "loadError": "Error loading the report.",
-      "noCharts": "No charts were generated for this report."
+      "noCharts": "No charts were generated for this report.",
+      "loading": "Loading report..."
     },
     "sections": {
       "analysisByTables": "Analysis by Tables",
