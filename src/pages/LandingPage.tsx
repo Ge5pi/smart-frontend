@@ -13,10 +13,16 @@ import {
   ArrowRight,
   FileText,
 } from 'lucide-react';
-import graph from "../assets/graph.png";
+import { useTranslation } from 'react-i18next';
+import graph from '../assets/graph.png';
 
-// Компонент-обертка для плавной анимации секций при скролле
-const AnimatedSection = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
+const AnimatedSection = ({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.2 });
 
@@ -33,8 +39,7 @@ const AnimatedSection = ({ children, className = '' }: { children: React.ReactNo
   );
 };
 
-// Анимированные карточки с микро-взаимодействием
-const FeatureCard = ({ icon: Icon, title, desc }: { icon: any; title:string; desc: string }) => (
+const FeatureCard = ({ icon: Icon, title, desc }: { icon: any; title: string; desc: string }) => (
   <motion.div
     whileHover={{ scale: 1.03, y: -5 }}
     transition={{ type: 'spring', stiffness: 300 }}
@@ -83,6 +88,7 @@ const Testimonial = ({ quote, author, role }: { quote: string; author: string; r
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -103,14 +109,13 @@ const LandingPage = () => {
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50/80 backdrop-blur-sm text-blue-700 text-sm font-medium border border-blue-100 mb-4">
                 <Sparkles size={16} />
-                Аналитика данных за минуты
+                {t('landing.hero.badge')}
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
-                Загружайте данные. Стройте графики. Задавайте вопросы AI.
+                {t('landing.hero.title')}
               </h1>
               <p className="mt-4 text-lg text-gray-600">
-                Единая платформа для загрузки данных, очистки, визуализации и интеллектуального
-                анализа. Поддержка CSV/Excel и подключений к базам (PostgreSQL, SQL Server).
+                {t('landing.hero.subtitle')}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <motion.button
@@ -119,15 +124,15 @@ const LandingPage = () => {
                   onClick={() => navigate('/register')}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg hover:bg-blue-700 transition-colors"
                 >
-                  Начать бесплатно
+                  {t('landing.hero.ctaPrimary')}
                   <ArrowRight size={18} />
                 </motion.button>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                   <Link
+                  <Link
                     to="/login"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/80 backdrop-blur-sm border-2 border-gray-300 text-gray-800 font-semibold hover:border-gray-400 hover:bg-white transition-all"
                   >
-                    Войти
+                    {t('landing.hero.ctaSecondary')}
                   </Link>
                 </motion.div>
               </div>
@@ -145,8 +150,12 @@ const LandingPage = () => {
                   <BarChart3 />
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">Data Insight</div>
-                  <div className="text-gray-500 text-sm">Визуализация и AI-анализ</div>
+                  <div className="font-semibold text-gray-900">
+                    {t('landing.hero.mock.appName')}
+                  </div>
+                  <div className="text-gray-500 text-sm">
+                    {t('landing.hero.mock.appSubtitle')}
+                  </div>
                 </div>
               </div>
               <div className="mt-6 grid grid-cols-3 gap-3">
@@ -161,12 +170,14 @@ const LandingPage = () => {
                 </div>
               </div>
               <div className="mt-6 p-4 bg-gray-50/80 rounded-xl border border-gray-200">
-                <div className="text-sm text-gray-700 font-medium mb-2">AI-диалог</div>
+                <div className="text-sm text-gray-700 font-medium mb-2">
+                  {t('landing.hero.mock.chatTitle')}
+                </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-3 text-gray-600 text-sm">
-                  Какой столбец сильнее всего влияет на зарплату?
+                  {t('landing.hero.mock.chatUser')}
                 </div>
                 <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 mt-2 text-gray-800 text-sm">
-                  Модель построила корреляции. Наибольшее влияние у «Опыт_лет» (r=0.62).
+                  {t('landing.hero.mock.chatAI')}
                 </div>
               </div>
             </motion.div>
@@ -175,36 +186,41 @@ const LandingPage = () => {
       </header>
 
       <AnimatedSection className="max-w-7xl mx-auto px-6 py-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Что вы получите</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+          {t('landing.features.title')}
+        </h2>
         <div className="grid md:grid-cols-4 gap-6">
           <FeatureCard
             icon={BarChart3}
-            title="Быстрые визуализации"
-            desc="Гистограммы, линейные, круговые, scatter, bubble и boxplot — в пару кликов."
+            title={t('landing.features.fastViz.title')}
+            desc={t('landing.features.fastViz.desc')}
           />
           <FeatureCard
             icon={BrainCircuit}
-            title="AI-агент"
-            desc="Задавайте вопросы на естественном языке. Получайте объяснения, гипотезы и инсайты."
+            title={t('landing.features.aiAgent.title')}
+            desc={t('landing.features.aiAgent.desc')}
           />
           <FeatureCard
             icon={Database}
-            title="Подключение к БД"
-            desc="Поддержка PostgreSQL и SQL Server. Запускайте анализ и получайте отчеты."
+            title={t('landing.features.dbConnect.title')}
+            desc={t('landing.features.dbConnect.desc')}
           />
           <FeatureCard
             icon={CheckCircle}
-            title="Очистка данных"
-            desc="Заполнение пропусков, поиск выбросов, кодирование категорий. Готовьте датасет к анализу."
+            title={t('landing.features.cleaning.title')}
+            desc={t('landing.features.cleaning.desc')}
           />
         </div>
       </AnimatedSection>
 
       <AnimatedSection className="max-w-7xl mx-auto px-6 pb-16">
         <div className="grid md:grid-cols-3 gap-6">
-          <PreviewCard title="Визуализация" desc="Интерактивные графики на Chart.js с аккуратными пресетами.">
+          <PreviewCard
+            title={t('landing.previews.viz.title')}
+            desc={t('landing.previews.viz.desc')}
+          >
             <div className="h-44 bg-white rounded-xl border border-gray-200 flex items-center justify-center">
-              <img src={graph} alt="Image" />
+              <img src={graph} alt="Graph preview" />
             </div>
             <div className="mt-3 flex gap-2">
               <span className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm">Histogram</span>
@@ -213,72 +229,94 @@ const LandingPage = () => {
             </div>
           </PreviewCard>
 
-          <PreviewCard title="AI-диалог" desc="Контекстная сессия по конкретному файлу: объяснения, выводы, шаги.">
+          <PreviewCard
+            title={t('landing.previews.aiChat.title')}
+            desc={t('landing.previews.aiChat.desc')}
+          >
             <div className="space-y-2">
-              <div className="rounded-lg border bg-white p-3 text-gray-600 text-sm">Покажи топ-5 строк по зарплате</div>
+              <div className="rounded-lg border bg-white p-3 text-gray-600 text-sm">
+                {t('landing.previews.aiChat.user')}
+              </div>
               <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-gray-800 text-sm">
-                Отобраны строки. Средняя зарплата в выборке: 185k. Хотите построить график распределения?
+                {t('landing.previews.aiChat.ai')}
               </div>
             </div>
           </PreviewCard>
 
-          <PreviewCard title="Анализ БД" desc="Старт задачи, статус отчета, просмотр результатов.">
+          <PreviewCard
+            title={t('landing.previews.dbAnalysis.title')}
+            desc={t('landing.previews.dbAnalysis.desc')}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                 <FileText />
               </div>
               <div>
-                <div className="font-semibold text-gray-900">Отчет #1294</div>
-                <div className="text-gray-500 text-sm">Завершен - 12 мин назад</div>
+                <div className="font-semibold text-gray-900">
+                  {t('landing.previews.dbAnalysis.reportName')}
+                </div>
+                <div className="text-gray-500 text-sm">
+                  {t('landing.previews.dbAnalysis.reportTime')}
+                </div>
               </div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-              <div className="p-2 rounded-lg bg-green-50 text-green-700 text-center">Корреляции</div>
-              <div className="p-2 rounded-lg bg-yellow-50 text-yellow-700 text-center">Гипотезы</div>
-              <div className="p-2 rounded-lg bg-blue-50 text-blue-700 text-center">Кластеры</div>
+              <div className="p-2 rounded-lg bg-green-50 text-green-700 text-center">
+                {t('landing.previews.dbAnalysis.tagCorrelations')}
+              </div>
+              <div className="p-2 rounded-lg bg-yellow-50 text-yellow-700 text-center">
+                {t('landing.previews.dbAnalysis.tagHypotheses')}
+              </div>
+              <div className="p-2 rounded-lg bg-blue-50 text-blue-700 text-center">
+                {t('landing.previews.dbAnalysis.tagClusters')}
+              </div>
             </div>
           </PreviewCard>
         </div>
       </AnimatedSection>
 
       <AnimatedSection className="max-w-7xl mx-auto px-6 pb-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Как это работает</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+          {t('landing.howItWorks.title')}
+        </h2>
         <div className="grid md:grid-cols-3 gap-6">
           <Step
             num="1"
-            title="Загрузите файл или подключитесь к БД"
-            desc="CSV/Excel или строка подключения PostgreSQL/SQL Server — секунды на старт."
+            title={t('landing.howItWorks.step1.title')}
+            desc={t('landing.howItWorks.step1.desc')}
           />
           <Step
             num="2"
-            title="Очистите и визуализируйте"
-            desc="Заполните пропуски, найдите выбросы, закодируйте категории, постройте графики."
+            title={t('landing.howItWorks.step2.title')}
+            desc={t('landing.howItWorks.step2.desc')}
           />
           <Step
             num="3"
-            title="Спросите AI"
-            desc="Получите пояснения, гипотезы, отчеты и готовые инсайты — в диалоге."
+            title={t('landing.howItWorks.step3.title')}
+            desc={t('landing.howItWorks.step3.desc')}
           />
         </div>
       </AnimatedSection>
 
       <AnimatedSection className="max-w-7xl mx-auto px-6 pb-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">Нам доверяют</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+          {t('landing.testimonials.title')}
+        </h2>
         <div className="grid md:grid-cols-3 gap-6">
           <Testimonial
-            quote="За вечер собрали отчет по продажам и нашли три гипотезы, которые увеличили конверсию."
-            author="Анна"
-            role="Продуктовый аналитик"
+            quote={t('landing.testimonials.items.anna.quote')}
+            author={t('landing.testimonials.items.anna.author')}
+            role={t('landing.testimonials.items.anna.role')}
           />
           <Testimonial
-            quote="Подключил продовую базу и получил читаемый отчет с корреляциями и кластерами."
-            author="Дмитрий"
-            role="Data Engineer"
+            quote={t('landing.testimonials.items.dmitry.quote')}
+            author={t('landing.testimonials.items.dmitry.author')}
+            role={t('landing.testimonials.items.dmitry.role')}
           />
           <Testimonial
-            quote="AI-агент помог быстро объяснить выбросы и построить корректные визуализации."
-            author="Мария"
-            role="Маркетолог"
+            quote={t('landing.testimonials.items.maria.quote')}
+            author={t('landing.testimonials.items.maria.author')}
+            role={t('landing.testimonials.items.maria.role')}
           />
         </div>
       </AnimatedSection>
@@ -286,16 +324,20 @@ const LandingPage = () => {
       <AnimatedSection className="max-w-7xl mx-auto px-6 pb-20">
         <div className="p-8 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
-            <h3 className="text-2xl font-bold">Готовы превратить данные в результат?</h3>
-            <p className="text-blue-100 mt-1">Создайте аккаунт и получите первые инсайты уже сегодня.</p>
+            <h3 className="text-2xl font-bold">
+              {t('landing.cta.title')}
+            </h3>
+            <p className="text-blue-100 mt-1">
+              {t('landing.cta.subtitle')}
+            </p>
           </div>
           <div className="flex-shrink-0">
-             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 to="/register"
                 className="px-6 py-3 rounded-xl bg-white text-blue-600 font-semibold shadow-lg hover:bg-gray-200 transition-colors"
               >
-                Начать бесплатно
+                {t('landing.cta.button')}
               </Link>
             </motion.div>
           </div>

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 import { UserPlus, Mail, KeyRound, Loader } from 'lucide-react';
 
 const RegistrationPage = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -14,11 +16,11 @@ const RegistrationPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== passwordConfirm) {
-      setError('Пароли не совпадают.');
+      setError(t('register.errorPasswordMismatch'));
       return;
     }
     if (!email || !password) {
-        setError('Пожалуйста, заполните все поля.');
+        setError(t('register.errorEmptyFields'));
         return;
     }
 
@@ -32,13 +34,13 @@ const RegistrationPage = () => {
 
     try {
         await api.post('/users/register', userData);
-        alert('Регистрация прошла успешно! На вашу почту отправлен код подтверждения. Пожалуйста, проверьте почту.');
+        alert(t('register.success'));
         navigate('/verify-email');
     } catch (err: any) {
       if (err.response && err.response.data && err.response.data.detail) {
         setError(err.response.data.detail);
       } else {
-        setError('Произошла ошибка при регистрации.');
+        setError(t('register.errorDefault'));
       }
       console.error(err);
     } finally {
@@ -53,8 +55,8 @@ const RegistrationPage = () => {
           <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl mb-4">
             <UserPlus className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">Создать аккаунт</h2>
-          <p className="text-gray-600 mt-1">Присоединяйтесь к нашему сервису</p>
+          <h2 className="text-2xl font-bold text-gray-800">{t('register.title')}</h2>
+          <p className="text-gray-600 mt-1">{t('register.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -62,7 +64,7 @@ const RegistrationPage = () => {
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="email"
-              placeholder="Email"
+              placeholder={t('register.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
@@ -73,7 +75,7 @@ const RegistrationPage = () => {
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="password"
-              placeholder="Пароль"
+              placeholder={t('register.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
@@ -81,10 +83,10 @@ const RegistrationPage = () => {
             />
           </div>
           <div className="relative">
-             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="password"
-              placeholder="Подтвердите пароль"
+              placeholder={t('register.passwordConfirmPlaceholder')}
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
@@ -92,17 +94,20 @@ const RegistrationPage = () => {
             />
           </div>
 
-          {error && <p className="text-sm text-center text-red-600 bg-red-100 p-3 rounded-lg">{error}</p>}
+          {error && <p className="text-sm text-center text-red-600 bg-red-100 p-3 rounded-lg">{t('register.error', { error })}</p>}
 
           <button
             type="submit"
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-70 transition"
           >
-            {isLoading ? <Loader className="w-5 h-5 animate-spin" /> : 'Зарегистрироваться'}
+            {isLoading ? <Loader className="w-5 h-5 animate-spin" /> : t('register.submit')}
           </button>
           <div className="relative">
-          <p className="text-gray-600 px-1  font-semibold gap-2 inline text-lg">Уже есть аккаунт?</p> <a href="/login"> <h3 className="text-lg gap-2 text-blue-500 inline font-bold">Войти</h3></a>
+            <p className="text-gray-600 px-1 font-semibold gap-2 inline text-lg">{t('register.haveAccount')}</p>
+            <a href="/login">
+              <h3 className="text-lg gap-2 text-blue-500 inline font-bold">{t('register.login')}</h3>
+            </a>
           </div>
         </form>
       </div>

@@ -1,13 +1,11 @@
-// src/pages/SessionListPage.tsx
-
 import { useState, useContext, useEffect } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Loader, MessageSquarePlus, MessageSquareText, ChevronRight, BrainCircuit } from 'lucide-react';
 import api from '../api';
+import { useTranslation } from 'react-i18next';
 
-// Тип для информации о сессии, получаемой с бэкенда
 interface ChatSessionInfo {
   id: string;
   file_id: number;
@@ -17,6 +15,7 @@ interface ChatSessionInfo {
 }
 
 const SessionListPage = () => {
+  const { t } = useTranslation();
   const { fileId: fileIdFromUrl } = useParams<{ fileId: string }>();
   const { token, userFiles } = useContext(AppContext)!;
   const navigate = useNavigate();
@@ -25,11 +24,11 @@ const SessionListPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fileName = userFiles.find(f => f.file_uid === fileIdFromUrl)?.file_name || 'Выбранный файл';
+  const fileName = userFiles.find(f => f.file_uid === fileIdFromUrl)?.file_name || t('sessionList.selectedFile');
 
   useEffect(() => {
     if (!fileIdFromUrl) {
-      setError("ID файла не найден в URL.");
+      setError(t('sessionList.errorNoFileId'));
       setIsLoading(false);
       return;
     }
@@ -40,12 +39,12 @@ const SessionListPage = () => {
           setSessions(res.data);
         })
         .catch(err => {
-          setError("Не удалось загрузить список диалогов.");
+          setError(t('sessionList.errorLoadSessions'));
           console.error(err);
         })
         .finally(() => setIsLoading(false));
     }
-  }, [fileIdFromUrl, token]);
+  }, [fileIdFromUrl, token, t]);
 
   const handleCreateNewSession = async () => {
     if (!fileIdFromUrl) return;
@@ -54,10 +53,9 @@ const SessionListPage = () => {
     try {
       const res = await api.post('/sessions/create', { file_id: fileIdFromUrl });
       const newSession: ChatSessionInfo = res.data;
-      // Переходим в новый созданный чат
       navigate(`/chat/${newSession.id}`);
     } catch (err) {
-      setError("Не удалось создать новый диалог.");
+      setError(t('sessionList.errorCreateSession'));
       console.error(err);
       setIsLoading(false);
     }
@@ -74,8 +72,8 @@ const SessionListPage = () => {
           <div className="flex items-center gap-4">
              <div className="p-3 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-xl"><BrainCircuit className="w-6 h-6 text-white" /></div>
              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Диалоги с AI</h1>
-                <p className="text-gray-600 truncate">Файл: {fileName}</p>
+                <h1 className="text-2xl font-bold text-gray-800">{t('sessionList.title')}</h1>
+                <p className="text-gray-600 truncate">{t('sessionList.fileLabel')}: {fileName}</p>
              </div>
           </div>
         </div>
@@ -86,10 +84,10 @@ const SessionListPage = () => {
               className="w-full flex items-center justify-center gap-3 px-6 py-4 mb-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-md"
             >
               <MessageSquarePlus className="w-6 h-6" />
-              Начать новый диалог
+              {t('sessionList.newSessionButton')}
             </button>
 
-            <h2 className="text-lg font-semibold text-gray-700 mb-4">Продолжить диалог:</h2>
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">{t('sessionList.continueSessionTitle')}</h2>
             {error && <p className="text-red-500 bg-red-100 p-3 rounded-lg mb-4">{error}</p>}
 
             <div className="space-y-3">
@@ -102,11 +100,12 @@ const SessionListPage = () => {
                     >
                     <div className="flex justify-between items-center">
                         <div>
-                            {/* ИЗМЕНЕНИЕ: Добавлена проверка на случай, если title пустой */}
-                            <p className="font-semibold text-gray-800 flex items-center gap-2"><MessageSquareText className="w-5 h-5 text-gray-400"/>{session.title || 'Диалог без названия'}</p>
-                            {/* ИЗМЕНЕНИЕ: Добавлена проверка на случай, если дата пустая */}
+                            <p className="font-semibold text-gray-800 flex items-center gap-2">
+                              <MessageSquareText className="w-5 h-5 text-gray-400"/>
+                              {session.title || t('sessionList.untitledSession')}
+                            </p>
                             <p className="text-sm text-gray-500 mt-1">
-                                Последнее обновление: {session.last_updated ? format(new Date(session.last_updated), 'dd.MM.yyyy HH:mm') : 'Неизвестно'}
+                                {t('sessionList.lastUpdated')}: {session.last_updated ? format(new Date(session.last_updated), 'dd.MM.yyyy HH:mm') : t('sessionList.unknown')}
                             </p>
                         </div>
                         <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors" />
@@ -114,7 +113,7 @@ const SessionListPage = () => {
                     </Link>
                 ))
               ) : (
-                <p className="text-center text-gray-500 py-8">Для этого файла еще нет диалогов.</p>
+                <p className="text-center text-gray-500 py-8">{t('sessionList.noSessions')}</p>
               )}
             </div>
         </div>

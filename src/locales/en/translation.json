@@ -195,5 +195,185 @@
       "detectOutliers": "Failed to detect outliers.",
       "downloadFile": "Failed to download file."
     }
+  },
+  "emailVerification": {
+  "title": "Email Confirmation",
+  "subtitle": "Enter the code sent to your email.",
+  "emailPlaceholder": "Email",
+  "codePlaceholder": "Confirmation code",
+  "submitButton": "Submit",
+  "alertSuccess": "Email has been successfully verified. You can enter now.",
+  "error": "Error: {{error}}",
+  "errorDefault": "An error occurred when confirming the email. Please check the code and email."
+},
+  "landing": {
+    "hero": {
+      "badge": "Data analytics in minutes",
+      "title": "Upload data. Build charts. Ask AI questions.",
+      "subtitle": "A unified platform for uploading, cleaning, visualizing, and smart analytics. Supports CSV/Excel and connections to databases (PostgreSQL, SQL Server).",
+      "cta": "Get Started Free",
+      "login": "Log In"
+    },
+    "mockup": {
+      "title": "Data Insight",
+      "desc": "Visualization & AI analysis",
+      "dialogTitle": "AI Dialog",
+      "dialogQuestion": "Which column affects salary most?",
+      "dialogAnswer": "The model found correlations. The strongest influence is by 'Experience_years' (r=0.62)."
+    },
+    "features": {
+      "title": "What You Get",
+      "visual": {
+        "title": "Fast Visualizations",
+        "desc": "Histograms, line, pie, scatter, bubble, and boxplot — in a few clicks."
+      },
+      "ai": {
+        "title": "AI Agent",
+        "desc": "Ask in natural language. Get explanations, hypotheses, and insights."
+      },
+      "db": {
+        "title": "Database Connection",
+        "desc": "Supports PostgreSQL and SQL Server. Run analyses and get reports."
+      },
+      "clean": {
+        "title": "Data Cleaning",
+        "desc": "Fill missing values, find outliers, encode categories. Prepare your dataset for analysis."
+      }
+    },
+    "preview": {
+      "visual": {
+        "title": "Visualization",
+        "desc": "Interactive Chart.js graphs with curated presets.",
+        "hist": "Histogram",
+        "pie": "Pie",
+        "scatter": "Scatter"
+      },
+      "dialog": {
+        "title": "AI Dialog",
+        "desc": "Contextual session for a given file: explanations, conclusions, next steps.",
+        "user": "Show top 5 rows by salary",
+        "ai": "Rows selected. Mean salary in the sample: 185k. Want to see the distribution chart?"
+      },
+      "db": {
+        "title": "DB Analysis",
+        "desc": "Start a task, see report status, view results.",
+        "report": "Report #1294",
+        "status": "Completed - 12 min ago",
+        "corr": "Correlations",
+        "hypo": "Hypotheses",
+        "clust": "Clusters"
+      }
+    },
+    "steps": {
+      "title": "How It Works",
+      "1": {
+        "title": "Upload a file or connect to DB",
+        "desc": "CSV/Excel or PostgreSQL/SQL Server string — start in seconds."
+      },
+      "2": {
+        "title": "Clean & Visualize",
+        "desc": "Fill gaps, find outliers, encode categories, plot your charts."
+      },
+      "3": {
+        "title": "Ask AI",
+        "desc": "Get explanations, hypotheses, reports, and ready insights — in a dialog."
+      }
+    },
+    "testimonials": {
+      "title": "Trusted by Teams",
+      "1": {
+        "quote": "Built a sales report in an evening and found three hypotheses that increased conversion.",
+        "author": "Anna",
+        "role": "Product Analyst"
+      },
+      "2": {
+        "quote": "Connected the database and got a readable report with correlations and clusters.",
+        "author": "Dmitry",
+        "role": "Data Engineer"
+      },
+      "3": {
+        "quote": "The AI agent helped quickly explain outliers and build accurate visualizations.",
+        "author": "Maria",
+        "role": "Marketer"
+      }
+    },
+    "final": {
+      "title": "Ready to turn data into results?",
+      "subtitle": "Create your account and get first insights today.",
+      "cta": "Get Started Free"
+    }
+  },
+  "login": {
+    "title": "Account Login",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "forgotPassword": "Forgot password?",
+    "submit": "Login",
+    "error": "Error: {{error}}",
+    "errorDefault": "Login error occurred.",
+    "noAccount": "No account?",
+    "register": "Sign up"
+  },
+  "register": {
+    "title": "Create Account",
+    "subtitle": "Join our service",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "passwordConfirmPlaceholder": "Confirm password",
+    "submit": "Sign up",
+    "success": "Registration successful! A confirmation code has been sent to your email. Please check your email.",
+    "haveAccount": "Already have an account?",
+    "login": "Login",
+    "errorPasswordMismatch": "Passwords do not match.",
+    "errorEmptyFields": "Please fill out all fields.",
+    "errorDefault": "Registration error occurred.",
+    "error": "Error: {{error}}"
+  },
+  "passwordReset": {
+    "title": "Forgot Password?",
+    "subtitle": "Enter your email to reset your password.",
+    "emailPlaceholder": "Email",
+    "requestSent": "Password reset instructions sent to your email. Please check your inbox.",
+    "errorDefault": "An error occurred during the password reset request.",
+    "submit": "Send"
+  },
+  "resetPassword": {
+    "title": "Reset Password",
+    "subtitle": "Enter your new password.",
+    "newPasswordPlaceholder": "New password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "submit": "Reset Password",
+    "errorNoLink": "Invalid or missing password reset link.",
+    "errorPasswordMismatch": "Passwords do not match.",
+    "errorNoToken": "Password reset token is missing.",
+    "errorDefault": "An error occurred during password reset.",
+    "success": "Password successfully updated. You can now log in with your new password."
+  },
+  "sessionList": {
+    "title": "AI Conversations",
+    "fileLabel": "File",
+    "selectedFile": "Selected file",
+    "newSessionButton": "Start New Conversation",
+    "continueSessionTitle": "Continue conversation:",
+    "errorNoFileId": "File ID not found in URL.",
+    "errorLoadSessions": "Failed to load conversation list.",
+    "errorCreateSession": "Failed to create new conversation.",
+    "untitledSession": "Untitled conversation",
+    "lastUpdated": "Last updated",
+    "unknown": "Unknown",
+    "noSessions": "No conversations for this file yet."
+  },
+  "subscription": {
+    "title": "Subscription Request",
+    "subtitle": "Leave a request and we will contact you within an hour to proceed.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Your name",
+    "submit": "Order Subscription",
+    "errorNameRequired": "Please enter your name.",
+    "errorDefault": "An error occurred while submitting your request.",
+    "successTitle": "Request successfully submitted!",
+    "successMessage1": "We have received your request and sent a confirmation to your email",
+    "successMessage2": "Our managers will contact you within an hour.",
+    "backToHome": "Back to Home"
   }
 }
