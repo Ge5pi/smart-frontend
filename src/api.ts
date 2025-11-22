@@ -67,7 +67,6 @@ export interface Report {
   status: string;
   created_at: string;
   results: DatabaseAnalysisResults | ErrorResults | null;
-  // Добавляем поля для связи с подключением
   connection_alias?: string;
   connection_id?: number;
 }
@@ -90,14 +89,15 @@ export const getReport = (reportId: string) => {
 export const startDatabaseAnalysis = (
     connectionString: string,
     dbType: 'postgres' | 'sqlserver',
-    alias: string // Добавлен alias
+    alias: string,
+    language: 'en' | 'ru' = 'en'
 ) => {
   const formData = new FormData();
   formData.append('connectionString', connectionString);
   formData.append('dbType', dbType);
-  formData.append('alias', alias); // Добавлен alias
+  formData.append('alias', alias);
+  formData.append('language', language);
 
-  // Эндпоинт соответствует database_analytics.py
   return api.post('/analytics/database/analyze', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

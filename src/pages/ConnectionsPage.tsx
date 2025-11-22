@@ -100,7 +100,8 @@ const ConnectionsPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await startDatabaseAnalysis(connectionString, dbType, alias);
+      const currentLanguage = i18n.language.startsWith('ru') ? 'ru' : 'en';
+      const response = await startDatabaseAnalysis(connectionString, dbType, alias, currentLanguage);
       const reportId = response.data.report_id;
       navigate(`/reports/${reportId}`);
     } catch (err: any) {
@@ -187,7 +188,6 @@ const ConnectionsPage: React.FC = () => {
               </div>
             )}
 
-            {/* Сохраненные подключения */}
             {savedConnections.length > 0 && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
