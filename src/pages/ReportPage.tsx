@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import React, { useState, useEffect, useRef} from 'react';
 import { useParams } from 'react-router-dom';
-import { getReport, EnhancedReport } from '../api';
+import type { ReactNode } from 'react';
+import { getReport, type EnhancedReport } from '../api';
 import { Link, Database, BarChart2, ChevronDown, PieChart, LineChart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
