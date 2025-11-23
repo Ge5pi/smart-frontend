@@ -204,7 +204,7 @@ const LandingPage = () => {
         <div className="grid md:grid-cols-3 gap-6">
           <PreviewCard title="Визуализация" desc="Интерактивные графики на Chart.js с аккуратными пресетами.">
             <div className="h-44 bg-white rounded-xl border border-gray-200 flex items-center justify-center">
-              <img src={graph} alt="">
+              <img src={graph} alt="Image" />
             </div>
             <div className="mt-3 flex gap-2">
               <span className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm">Histogram</span>
