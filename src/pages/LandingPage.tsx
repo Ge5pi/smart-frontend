@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { BarChart3, BrainCircuit, Database, Sparkles, LineChart, PieChart, ScatterChart, CheckCircle, ArrowRight, FileText } from 'lucide-react';
 import graph from '../assets/graph.png';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const AnimatedSection = ({ children, className }: { children: React.ReactNode; className?: string }) => {
   const ref = useRef(null);
@@ -74,10 +75,14 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HERO */}
       <header className="relative overflow-hidden">
         <div className="aurora-background"></div>
-        <div className="relative max-w-7xl mx-auto px-6 pt-20 pb-16 z-10">
+
+        <div className="relative z-20 max-w-7xl mx-auto px-6 pt-6 flex justify-end">
+          <LanguageSwitcher />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6 pt-14 pb-16 z-10">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
